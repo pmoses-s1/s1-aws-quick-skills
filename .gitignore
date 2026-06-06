@@ -1,0 +1,33 @@
+# Credentials (NEVER commit real tokens)
+credentials.json
+.env
+*.env
+
+# Node
+node_modules/
+package-lock.json
+
+# Python
+*.pyc
+__pycache__/
+.venv/
+venv/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Runtime artifacts
+*.tmp
+*.log
+reports/
+charts/
+baselines/
+
+# Generated test output
+*.jpg
+*.pdf

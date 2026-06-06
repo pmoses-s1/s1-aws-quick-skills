@@ -1,0 +1,543 @@
+{
+  "description": "FortiGate Security Dashboard - comprehensive visibility into Fortinet firewall traffic, security events, and device health. Covers accept/deny posture, top talkers, protocol breakdown, interface roles, and policy analysis.",
+  "configType": "TABBED",
+  "tabs": [
+    {
+      "tabName": "Overview",
+      "graphs": [
+        {
+          "graphStyle": "markdown",
+          "title": "FortiGate Security Overview",
+          "markdown": "Real-time visibility into Fortinet firewall posture. All panels query `dataSource.name='FortiGate'`.",
+          "layout": {
+            "h": 4,
+            "w": 60,
+            "x": 0,
+            "y": 0
+          }
+        }, {
+          "graphStyle": "number",
+          "title": "Total Firewall Events",
+          "query": "dataSource.name='FortiGate' | group ct=count() | limit 1",
+          "options": {
+            "format": "short"
+          },
+          "sparklineConfig": {
+            "enabled": true
+          },
+          "trendConfig": {
+            "enabled": true,
+            "upwardsMeaning": "POSITIVE",
+            "indicators": {
+              "arrow": {
+                "enabled": true
+              },
+              "number": {
+                "enabled": true,
+                "calculationType": "PERCENTAGE"
+              }
+            }
+          },
+          "layout": {
+            "h": 8,
+            "w": 15,
+            "x": 0,
+            "y": 4
+          }
+        }, {
+          "graphStyle": "number",
+          "title": "Blocked / Denied Events",
+          "query": "dataSource.name='FortiGate' unmapped.action in ('deny','blocked') | group ct=count() | limit 1",
+          "options": {
+            "format": "short"
+          },
+          "sparklineConfig": {
+            "enabled": true
+          },
+          "trendConfig": {
+            "enabled": true,
+            "upwardsMeaning": "NEGATIVE",
+            "indicators": {
+              "arrow": {
+                "enabled": true
+              },
+              "number": {
+                "enabled": true,
+                "calculationType": "PERCENTAGE"
+              }
+            }
+          },
+          "layout": {
+            "h": 8,
+            "w": 15,
+            "x": 15,
+            "y": 4
+          }
+        }, {
+          "graphStyle": "number",
+          "title": "Accepted Events",
+          "query": "dataSource.name='FortiGate' unmapped.action='accept' | group ct=count() | limit 1",
+          "options": {
+            "format": "short"
+          },
+          "sparklineConfig": {
+            "enabled": true
+          },
+          "layout": {
+            "h": 8,
+            "w": 15,
+            "x": 30,
+            "y": 4
+          }
+        }, {
+          "graphStyle": "number",
+          "title": "SSL / Security Findings",
+          "query": "dataSource.name='FortiGate' class_name='Security Finding' | group ct=count() | limit 1",
+          "options": {
+            "format": "short"
+          },
+          "sparklineConfig": {
+            "enabled": true
+          },
+          "layout": {
+            "h": 8,
+            "w": 15,
+            "x": 45,
+            "y": 4
+          }
+        }, {
+          "graphStyle": "stacked_bar",
+          "title": "Event Volume Over Time by Log Subtype",
+          "query": "dataSource.name='FortiGate' metadata.log_name=*\n| group ct=count() by timestamp=timebucket('1h'), metadata.log_name\n| transpose metadata.log_name on timestamp",
+          "yScale": "linear",
+          "xAxis": "time",
+          "layout": {
+            "h": 14,
+            "w": 40,
+            "x": 0,
+            "y": 12
+          }
+        }, {
+          "graphStyle": "donut",
+          "title": "Firewall Action Distribution (Accept / Deny / Blocked)",
+          "query": "dataSource.name='FortiGate' unmapped.action=*\n| group ct=count() by unmapped.action\n| sort -ct",
+          "maxPieSlices": 10,
+          "totalNumberConfig": {
+            "enabled": true
+          },
+          "dataLabelType": "PERCENTAGE",
+          "layout": {
+            "h": 14,
+            "w": 20,
+            "x": 40,
+            "y": 12
+          }
+        }, {
+          "graphStyle": "pie",
+          "title": "Events by FortiGate Device",
+          "query": "dataSource.name='FortiGate' device.name=*\n| group ct=count() by device.name",
+          "maxPieSlices": 10,
+          "layout": {
+            "h": 14,
+            "w": 20,
+            "x": 0,
+            "y": 26
+          }
+        }, {
+          "graphStyle": "pie",
+          "title": "Events by Severity Level",
+          "query": "dataSource.name='FortiGate' unmapped.level=*\n| group ct=count() by unmapped.level",
+          "maxPieSlices": 10,
+          "layout": {
+            "h": 14,
+            "w": 20,
+            "x": 20,
+            "y": 26
+          }
+        }, {
+          "graphStyle": "stacked_bar",
+          "title": "Deny/Blocked Events Over Time by Device",
+          "query": "dataSource.name='FortiGate' unmapped.action in ('deny','blocked') device.name=*\n| group ct=count() by timestamp=timebucket('1h'), device.name\n| transpose device.name on timestamp",
+          "xAxis": "time",
+          "yScale": "linear",
+          "layout": {
+            "h": 14,
+            "w": 20,
+            "x": 40,
+            "y": 26
+          }
+        }
+      ]
+    }, {
+      "tabName": "Traffic Analysis",
+      "graphs": [
+        {
+          "graphStyle": "markdown",
+          "title": "Traffic Analysis",
+          "markdown": "Bandwidth consumption, protocol breakdown, top talkers, and application visibility.",
+          "layout": {
+            "h": 4,
+            "w": 60,
+            "x": 0,
+            "y": 0
+          }
+        }, {
+          "graphStyle": "number",
+          "title": "Total Bytes Received (Inbound)",
+          "query": "dataSource.name='FortiGate' traffic.bytes_in=*\n| group total=sum(number(traffic.bytes_in))\n| limit 1",
+          "options": {
+            "format": "bytes"
+          },
+          "sparklineConfig": {
+            "enabled": true
+          },
+          "layout": {
+            "h": 8,
+            "w": 15,
+            "x": 0,
+            "y": 4
+          }
+        }, {
+          "graphStyle": "number",
+          "title": "Total Bytes Sent (Outbound)",
+          "query": "dataSource.name='FortiGate' traffic.bytes_out=*\n| group total=sum(number(traffic.bytes_out))\n| limit 1",
+          "options": {
+            "format": "bytes"
+          },
+          "sparklineConfig": {
+            "enabled": true
+          },
+          "layout": {
+            "h": 8,
+            "w": 15,
+            "x": 15,
+            "y": 4
+          }
+        }, {
+          "graphStyle": "number",
+          "title": "Total Packets In",
+          "query": "dataSource.name='FortiGate' traffic.packets_in=*\n| group total=sum(number(traffic.packets_in))\n| limit 1",
+          "options": {
+            "format": "short"
+          },
+          "layout": {
+            "h": 8,
+            "w": 15,
+            "x": 30,
+            "y": 4
+          }
+        }, {
+          "graphStyle": "number",
+          "title": "Total Packets Out",
+          "query": "dataSource.name='FortiGate' traffic.packets_out=*\n| group total=sum(number(traffic.packets_out))\n| limit 1",
+          "options": {
+            "format": "short"
+          },
+          "layout": {
+            "h": 8,
+            "w": 15,
+            "x": 45,
+            "y": 4
+          }
+        }, {
+          "graphStyle": "stacked_bar",
+          "title": "Bandwidth Over Time (Bytes In vs Out per Hour)",
+          "query": "dataSource.name='FortiGate'\n| group bytes_in=sum(number(traffic.bytes_in)), bytes_out=sum(number(traffic.bytes_out)) by timestamp=timebucket('1h')",
+          "xAxis": "time",
+          "yScale": "linear",
+          "layout": {
+            "h": 14,
+            "w": 40,
+            "x": 0,
+            "y": 12
+          }
+        }, {
+          "graphStyle": "donut",
+          "title": "Traffic by Protocol (TCP / UDP / Other)",
+          "query": "dataSource.name='FortiGate' connection_info.protocol_num=*\n| let proto = connection_info.protocol_num='6' ? 'TCP' : connection_info.protocol_num='17' ? 'UDP' : connection_info.protocol_num='1' ? 'ICMP' : 'Other'\n| group ct=count() by proto\n| sort -ct",
+          "maxPieSlices": 10,
+          "totalNumberConfig": {
+            "enabled": true
+          },
+          "dataLabelType": "PERCENTAGE",
+          "layout": {
+            "h": 14,
+            "w": 20,
+            "x": 40,
+            "y": 12
+          }
+        }, {
+          "graphStyle": "table",
+          "title": "Top 20 Source IPs by Egress Volume",
+          "query": "dataSource.name='FortiGate' src_endpoint.ip=*\n| group bytes_in=sum(number(traffic.bytes_in)), bytes_out=sum(number(traffic.bytes_out)), sessions=count() by src_endpoint.ip\n| sort -bytes_out\n| limit 20",
+          "showBarsColumn": "true",
+          "layout": {
+            "h": 18,
+            "w": 30,
+            "x": 0,
+            "y": 26
+          }
+        }, {
+          "graphStyle": "table",
+          "title": "Top 20 Destination IPs by Ingress Volume",
+          "query": "dataSource.name='FortiGate' dst_endpoint.ip=*\n| group bytes_in=sum(number(traffic.bytes_in)), bytes_out=sum(number(traffic.bytes_out)), sessions=count() by dst_endpoint.ip\n| sort -bytes_in\n| limit 20",
+          "showBarsColumn": "true",
+          "layout": {
+            "h": 18,
+            "w": 30,
+            "x": 30,
+            "y": 26
+          }
+        }, {
+          "graphStyle": "table",
+          "title": "Top 20 Destination Ports by Session Count",
+          "query": "dataSource.name='FortiGate' dst_endpoint.port=*\n| group sessions=count(), bytes_in=sum(number(traffic.bytes_in)), bytes_out=sum(number(traffic.bytes_out)) by dst_endpoint.port\n| sort -sessions\n| limit 20",
+          "showBarsColumn": "true",
+          "layout": {
+            "h": 16,
+            "w": 30,
+            "x": 0,
+            "y": 44
+          }
+        }, {
+          "graphStyle": "table",
+          "title": "Top 20 Applications by Session Count",
+          "query": "dataSource.name='FortiGate' app_name=*\n| group sessions=count() by app_name\n| sort -sessions\n| limit 20",
+          "showBarsColumn": "true",
+          "layout": {
+            "h": 16,
+            "w": 30,
+            "x": 30,
+            "y": 44
+          }
+        }
+      ]
+    }, {
+      "tabName": "Security Events",
+      "graphs": [
+        {
+          "graphStyle": "markdown",
+          "title": "Security Events",
+          "markdown": "Denied and blocked traffic, SSL findings, and threat posture analysis.",
+          "layout": {
+            "h": 4,
+            "w": 60,
+            "x": 0,
+            "y": 0
+          }
+        }, {
+          "graphStyle": "line",
+          "title": "Denied / Blocked Events Over Time (Hourly)",
+          "query": "dataSource.name='FortiGate' unmapped.action in ('deny','blocked')\n| group ct=count() by timestamp=timebucket('1h')",
+          "lineSmoothing": "smoothCurves",
+          "xAxis": "time",
+          "yScale": "linear",
+          "layout": {
+            "h": 14,
+            "w": 40,
+            "x": 0,
+            "y": 4
+          }
+        }, {
+          "graphStyle": "number",
+          "title": "Warning-Level Events",
+          "query": "dataSource.name='FortiGate' unmapped.level='warning'\n| group ct=count()\n| limit 1",
+          "options": {
+            "format": "short"
+          },
+          "sparklineConfig": {
+            "enabled": true
+          },
+          "layout": {
+            "h": 7,
+            "w": 20,
+            "x": 40,
+            "y": 4
+          }
+        }, {
+          "graphStyle": "donut",
+          "title": "Denied Traffic by Source Interface Role",
+          "query": "dataSource.name='FortiGate' unmapped.action in ('deny','blocked') unmapped.srcintfrole=*\n| group ct=count() by unmapped.srcintfrole",
+          "maxPieSlices": 10,
+          "totalNumberConfig": {
+            "enabled": true
+          },
+          "layout": {
+            "h": 7,
+            "w": 20,
+            "x": 40,
+            "y": 11
+          }
+        }, {
+          "graphStyle": "table",
+          "title": "Top 20 Denied Source IPs (Most Blocked Origins)",
+          "query": "dataSource.name='FortiGate' unmapped.action in ('deny','blocked') src_endpoint.ip=*\n| group ct=count() by src_endpoint.ip\n| sort -ct\n| limit 20",
+          "showBarsColumn": "true",
+          "layout": {
+            "h": 18,
+            "w": 30,
+            "x": 0,
+            "y": 18
+          }
+        }, {
+          "graphStyle": "table",
+          "title": "Top 20 Denied Destination IP:Port Pairs",
+          "query": "dataSource.name='FortiGate' unmapped.action in ('deny','blocked') dst_endpoint.ip=* dst_endpoint.port=*\n| group ct=count() by dst_endpoint.ip, dst_endpoint.port\n| sort -ct\n| limit 20",
+          "showBarsColumn": "true",
+          "layout": {
+            "h": 18,
+            "w": 30,
+            "x": 30,
+            "y": 18
+          }
+        }, {
+          "graphStyle": "table",
+          "title": "SSL / Security Findings - Source to Destination",
+          "query": "dataSource.name='FortiGate' event.type='ssl'\n| group ct=count() by src_endpoint.ip, dst_endpoint.ip, dst_endpoint.port\n| sort -ct\n| limit 20",
+          "showBarsColumn": "true",
+          "layout": {
+            "h": 16,
+            "w": 40,
+            "x": 0,
+            "y": 36
+          }
+        }, {
+          "graphStyle": "markdown",
+          "title": "Deny Rate Posture",
+          "markdown": "A healthy firewall typically shows **> 90% accept** with deny/blocked concentrated on:\n- **WAN to LAN** probes (expected internet noise)\n- **Specific internal IPs** repeatedly hitting blocked destinations (possible misconfiguration or C2 attempt)\n\n**Investigation triggers:**\n- Deny rate > 20%: Check for scanning activity\n- Single source IP > 500 denies: Possible compromised host\n- Deny spike correlated with specific destination: Possible outbound C2",
+          "layout": {
+            "h": 16,
+            "w": 20,
+            "x": 40,
+            "y": 36
+          }
+        }
+      ]
+    }, {
+      "tabName": "Device & Interface",
+      "graphs": [
+        {
+          "graphStyle": "markdown",
+          "title": "Device & Interface Analysis",
+          "markdown": "Per-device breakdown, interface roles, NAT translation, and policy hit analysis.",
+          "layout": {
+            "h": 4,
+            "w": 60,
+            "x": 0,
+            "y": 0
+          }
+        }, {
+          "graphStyle": "table",
+          "title": "FortiGate Device Summary (Events, Bytes In/Out)",
+          "query": "dataSource.name='FortiGate' device.name=*\n| group sessions=count(), bytes_in=sum(number(traffic.bytes_in)), bytes_out=sum(number(traffic.bytes_out)) by Device_Name=device.name, Device_ID=device.uid\n| sort -sessions",
+          "showBarsColumn": "true",
+          "layout": {
+            "h": 10,
+            "w": 60,
+            "x": 0,
+            "y": 4
+          }
+        }, {
+          "graphStyle": "pie",
+          "title": "Traffic by Source Interface",
+          "query": "dataSource.name='FortiGate' src_endpoint.interface_name=*\n| group ct=count() by src_endpoint.interface_name\n| sort -ct",
+          "maxPieSlices": 10,
+          "layout": {
+            "h": 14,
+            "w": 20,
+            "x": 0,
+            "y": 14
+          }
+        }, {
+          "graphStyle": "pie",
+          "title": "Traffic by Destination Interface",
+          "query": "dataSource.name='FortiGate' dst_endpoint.interface_name=*\n| group ct=count() by dst_endpoint.interface_name\n| sort -ct",
+          "maxPieSlices": 10,
+          "layout": {
+            "h": 14,
+            "w": 20,
+            "x": 20,
+            "y": 14
+          }
+        }, {
+          "graphStyle": "donut",
+          "title": "NAT Translation Disposition (SNAT / NOOP)",
+          "query": "dataSource.name='FortiGate' unmapped.trandisp=*\n| group ct=count() by unmapped.trandisp",
+          "maxPieSlices": 10,
+          "totalNumberConfig": {
+            "enabled": true
+          },
+          "layout": {
+            "h": 14,
+            "w": 20,
+            "x": 40,
+            "y": 14
+          }
+        }, {
+          "graphStyle": "table",
+          "title": "Traffic Flow: Source Interface Role to Destination Interface Role",
+          "query": "dataSource.name='FortiGate' unmapped.srcintfrole=* unmapped.dstintfrole=*\n| group ct=count() by Source_Role=unmapped.srcintfrole, Dest_Role=unmapped.dstintfrole\n| sort -ct\n| limit 20",
+          "showBarsColumn": "true",
+          "layout": {
+            "h": 16,
+            "w": 30,
+            "x": 0,
+            "y": 28
+          }
+        }, {
+          "graphStyle": "table",
+          "title": "Top 20 Policy Type Hits",
+          "query": "dataSource.name='FortiGate' unmapped.policytype=*\n| group sessions=count() by Policy_Type=unmapped.policytype, Action=unmapped.action, Src_Interface=unmapped.srcintfrole, Dst_Interface=unmapped.dstintfrole\n| sort -sessions\n| limit 20",
+          "showBarsColumn": "true",
+          "layout": {
+            "h": 16,
+            "w": 30,
+            "x": 30,
+            "y": 28
+          }
+        }, {
+          "graphStyle": "table",
+          "title": "Session Duration Statistics by Device",
+          "query": "dataSource.name='FortiGate' device.name=* duration=*\n| group avg_duration_sec=avg(number(duration)), max_duration_sec=max(number(duration)), total_sessions=count() by device.name",
+          "showBarsColumn": "false",
+          "layout": {
+            "h": 10,
+            "w": 60,
+            "x": 0,
+            "y": 44
+          }
+        }, {
+          "graphStyle": "donut",
+          "title": "Top Destination Countries",
+          "query": "dataSource.name='FortiGate' dst_endpoint.location.country=*\n| group ct=count() by dst_endpoint.location.country\n| sort -ct\n| limit 15",
+          "maxPieSlices": 15,
+          "totalNumberConfig": {
+            "enabled": true
+          },
+          "dataLabelType": "PERCENTAGE",
+          "layout": {
+            "h": 14,
+            "w": 30,
+            "x": 0,
+            "y": 54
+          }
+        }, {
+          "graphStyle": "donut",
+          "title": "Top Source Countries",
+          "query": "dataSource.name='FortiGate' src_endpoint.location.country=*\n| group ct=count() by src_endpoint.location.country\n| sort -ct\n| limit 15",
+          "maxPieSlices": 15,
+          "totalNumberConfig": {
+            "enabled": true
+          },
+          "dataLabelType": "PERCENTAGE",
+          "layout": {
+            "h": 14,
+            "w": 30,
+            "x": 30,
+            "y": 54
+          }
+        }
+      ]
+    }
+  ]
+}
