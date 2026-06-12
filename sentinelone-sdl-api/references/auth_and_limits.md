@@ -7,15 +7,14 @@ The SDL API recognises four scoped key types plus the SentinelOne Console user A
 | Key type                | Where to generate (SDL UI: user menu → API Keys) | Methods unlocked |
 |-------------------------|---------------------------------------------------|------------------|
 | Log Read Access         | API Keys → Log Access Keys                        | `query`, `numericQuery`, `facetQuery`, `timeseriesQuery`, `powerQuery` |
-| Log Write Access        | API Keys → Log Access Keys                        | `uploadLogs`, `addEvents` |
 | Configuration Read      | API Keys → Configuration Access Keys              | All Log Read methods + `listFiles`, `getFile` |
 | Configuration Write     | API Keys → Configuration Access Keys              | All of the above + `putFile` |
-| Console User API token  | S1 Console → Settings → Users → My User → API Token | All query + config methods. NOT `uploadLogs`. |
+| Console User API token  | S1 Console → Settings → Users → My User → API Token | All query + config methods. |
 
 Notes:
 
 - SDL API keys are **scope-specific**. A site-scoped key only sees data and configs in that site. Switch the scope in the top-left of the SDL Console before generating.
-- Console user API tokens are **NOT** scope-specific and respect RBAC across multi-site/multi-account access. They expire — for ingestion (`addEvents`), prefer a Log Write Access key, which does not expire.
+- Console user API tokens are **NOT** scope-specific and respect RBAC across multi-site/multi-account access. They expire and are refreshed via the console.
 - Legacy console tokens (pre Z SP5) are not accepted by SDL. Generate a new one.
 
 ## Sending the token
@@ -69,10 +68,9 @@ Non-query operations:
 - Aggregate request bytes per operation: starting budget **30 MB**, refill **4 MB/s**.
 - **12 concurrent requests** max from the same API key.
 
-### Ingest-specific caps
+### Ingestion (moved to HEC)
 
-- `uploadLogs`: 6 MB per request, **10 GB/day per tenant**.
-- `addEvents`: 6 MB per request. Per-session: ≤2.5 MB/s recommended, 10 MB/s hard cap. Account: ≤50K sessions per 5-minute window.
+Raw-log/event ingestion is no longer part of this skill; use the HEC ingest path. HEC ingest limits are documented with the HEC tooling.
 
 ## Retry strategy
 

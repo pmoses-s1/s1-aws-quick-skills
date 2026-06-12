@@ -275,7 +275,7 @@ def main() -> int:
     client = SDLClient()
     # Force-clear scoped keys so auth falls through to the console JWT, which has the
     # broadest read scope and is the most reliable for replaying mixed-source panels.
-    for k in ("log_read_key", "log_write_key", "config_read_key", "config_write_key"):
+    for k in ("log_read_key", "config_read_key", "config_write_key"):
         if k in client.keys:
             client.keys[k] = ""
 

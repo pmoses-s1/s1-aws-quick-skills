@@ -89,7 +89,7 @@ test('http: POST /mcp initialize returns server info', async () => {
     const body = await r.json();
     assert.equal(body.id, 1);
     assert.equal(body.result.serverInfo.name, 'sentinelone-mcp-server');
-    assert.equal(body.result.serverInfo.version, '1.1.0');
+    assert.equal(body.result.serverInfo.version, '1.2.1');
   });
 });
 

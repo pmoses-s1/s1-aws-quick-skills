@@ -595,6 +595,16 @@ official integrations.
 Recipients in `to`/`cc`/`bcc`/`reply_to` are arrays of strings (each element can be a literal
 or a `{{...}}` expression).
 
+**Attachments use `file_name` / `file_content` (NOT `name` / `content`)**, confirmed against the
+live import API on 2026-06-11:
+```json
+"attachments": [
+  { "file_name": "report.csv", "file_content": "{{Function.BASE64_ENCODE(local_var.csv)}}" }
+]
+```
+`file_content` is base64. Using `name`/`content` returns
+`422 "Field required"` on `attachments.0.file_name` / `attachments.0.file_content`.
+
 ---
 
 ## A15. Snippet
@@ -756,11 +766,25 @@ Variable (cursor = next_cursor from response)
   ↓
 Condition (cursor is empty?)
   TRUE  → Break Loop
-  FALSE → (loop continues, connect back to top of inner block)
+  (NO false edge — the while loop re-runs the inner block automatically; see warning)
 ```
+
+> **Confirmed 2026-06-11 (live import):** do NOT wire the condition's `FALSE` branch back to the
+> top of the inner block. A `while` loop re-runs its inner subgraph automatically until a
+> `break_loop` fires, so the terminating condition needs only its `TRUE → break_loop` edge; the
+> `FALSE` branch is simply omitted. An explicit back-edge to an earlier action makes the importer
+> reject the whole workflow with a generic `422 "Invalid workflow data"`. (Import validation
+> confirmed with the edge removed; runtime iteration not separately verified.)
 
 Most-used cursor field in the corpus:
 `{{list-channels.body.response_metadata.next_cursor}}`.
+
+> **S1 list-endpoint pagination quirks (confirmed 2026-06-11 on `/web/api/v2.1/agents`):**
+> `pagination.totalItems` is populated only on the **first** page (empty cursor) and returns `0`
+> on later pages — for a true total, read it on page 1 or use the length of the gathered list.
+> `nextCursor` is returned **already URL-encoded** (contains `%3D`); pass it straight into the
+> next request's `cursor=` (do NOT wrap it in `Function.URL_ENCODE`). An empty `cursor=` returns
+> page 1 cleanly, so seeding `cursor = ""` is safe.
 
 ---
 

@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.2.1 - 2026-06-11
+
+Supersedes 1.2.0, which was deprecated on npm. The 1.2.0 build shipped with a stale internal `SERVER_INFO.version` of `1.1.0` despite a `1.2.0` package version, so the server announced the wrong version on `initialize`. 1.2.1 is identical in features and corrects the reported runtime version. The content below is unchanged from the 1.2.0 work.
+
+### Added
+- **`hec_ingest` tool** — raw-log/event ingestion into the Singularity Data Lake via the HEC (HTTP Event Collector) endpoint (`/services/collector/raw` and `/services/collector/event`). Supports `parser` (-> `?sourcetype=`), custom `fields` (query params), **required** `scope` (S1-Scope header), gzip compression, and `isParsed` (-> `?isParsed=true`, indexes already-structured JSON with no SDL parser). Replaces the removed `sdl_upload_logs`. Validated live across the full HEC matrix (both endpoints, gzip on/off, parser field extraction, multi-line, batched, reserved-field handling, scope enforcement, isParsed). Grounded in the S-26.1 HEC docs (p.4723-4726).
+
+### Removed
+- **`sdl_upload_logs` tool** plus the underlying SDL `uploadLogs`/`addEvents` library functions and `SDL_LOG_WRITE_KEY` plumbing. SDL raw-log ingestion moves to the HEC path (`hec_ingest`). The `sentinelone-sdl-api` skill is now query + configuration only; the `sentinelone-sdl-log-parser` validation loop uses HEC ingest.
+
+### Changed
+- Tool count unchanged at 26 (removed `sdl_upload_logs`, added `hec_ingest`).
+- Skill docs corrected: scheduled detection rules bind the Target Asset via `entityMappings` ("Entity column mapping"); the full scheduled-rule option set (UI <-> API) is catalogued in `sentinelone-powerquery/references/detection-rules.md`.
+
+
 ## 1.1.0 — 2026-05-28 (rebuilt 2026-05-31)
 
 ### Fixed (rebuild)
@@ -36,7 +51,7 @@
 
 ### Compatibility
 - Default invocation is unchanged: `npx -y @pmoses-s1/sentinelone-mcp` still produces a stdio MCP server with identical behavior to 1.0.0.
-- Existing MCP client configs (Amazon Quick, `claude_desktop_config.json`, `.mcp.json`) work without modification.
+- Existing `claude_desktop_config.json` and `.mcp.json` configs work without modification.
 - The 26 tools, 2 resources, and 2 prompts are unchanged from the late-1.0.0 line; only the documentation now matches reality.
 
 ## 1.0.0 — 2026-05-07

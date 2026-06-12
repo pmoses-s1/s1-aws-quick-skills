@@ -31,7 +31,7 @@ const EXPECTED_TOOLS = [
   'sdl_get_file',
   'sdl_put_file',
   'sdl_delete_file',
-  'sdl_upload_logs',
+  'hec_ingest',
   // Hyperautomation (5)
   'ha_list_workflows',
   'ha_get_workflow',
@@ -45,7 +45,7 @@ const EXPECTED_TOOLS = [
 ];
 
 test('server version is current', () => {
-  assert.equal(SERVER_INFO.version, '1.1.0');
+  assert.equal(SERVER_INFO.version, '1.2.1');
 });
 
 test('ALL_TOOLS exposes exactly 26 tools', () => {
@@ -92,8 +92,8 @@ test('s1_api_get description warns about isLegacy=false on /cloud-detection/rule
   const tool = ALL_TOOLS.find(t => t.name === 's1_api_get');
   assert.ok(tool, 's1_api_get tool missing');
   // The tool description that models see in the JSON schema must loudly
-  // flag the requirement, so even if the handler guard is bypassed the
-  // model sees it in the tool list.
+  // flag the requirement, so even if the handler guard is bypassed Claude
+  // sees it in the tool list.
   assert.match(tool.description, /isLegacy=false/i, 's1_api_get description must mention isLegacy=false');
   assert.match(tool.description, /cloud-detection\/rules/i, 's1_api_get description must mention /cloud-detection/rules');
 });

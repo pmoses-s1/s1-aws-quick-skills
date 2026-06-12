@@ -1,6 +1,6 @@
 {
   "name": "@pmoses-s1/sentinelone-mcp",
-  "version": "1.1.0",
+  "version": "1.2.1",
   "description": "MCP server orchestrating SentinelOne skills, APIs, and SOC analyst context. Stdio or Streamable HTTP transport with per-user bearer auth for team deployments.",
   "type": "module",
   "main": "index.js",
@@ -28,11 +28,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/pmoses-s1/s1-aws-quick-skills.git",
+    "url": "git+https://github.com/pmoses-s1/claude-skills.git",
     "directory": "sentinelone-mcp"
   },
-  "homepage": "https://github.com/pmoses-s1/s1-aws-quick-skills/tree/main/sentinelone-mcp#readme",
-  "bugs": "https://github.com/pmoses-s1/s1-aws-quick-skills/issues",
+  "homepage": "https://github.com/pmoses-s1/claude-skills/tree/main/sentinelone-mcp#readme",
+  "bugs": "https://github.com/pmoses-s1/claude-skills/issues",
   "keywords": [
     "mcp",
     "sentinelone",
@@ -41,7 +41,7 @@
     "powerquery",
     "sdl",
     "singularity-data-lake",
-    "amazon-quick"
+    "claude"
   ],
   "license": "MIT",
   "publishConfig": {

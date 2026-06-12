@@ -1,6 +1,6 @@
 # SDL Parser Syntax — Full Reference
 
-SDL parsers are **augmented JSON**: unquoted keys are allowed, string values can span lines, and `//` / `/* */` comments are supported. The file is stored at `/logParsers/<NAME>` on the SDL tenant and applied by name via `uploadLogs` (`parser: <NAME>` header) or `addEvents` (`attrs.parser`).
+SDL parsers are **augmented JSON**: unquoted keys are allowed, string values can span lines, and `//` / `/* */` comments are supported. The file is stored at `/logParsers/<NAME>` on the SDL tenant and applied by name at HEC ingest (`parser: <NAME>` header).
 
 ## Table of contents
 
@@ -54,7 +54,7 @@ SDL parsers are **augmented JSON**: unquoted keys are allowed, string values can
 
 Formats are tried in declaration order against the **whole line**. A format that doesn't match simply doesn't apply; a format that matches merges its captures into the event. When `halt: true`, matching stops after the first match.
 
-> **The parser only sees `message`.** Ingest-time attributes added by collectors, relays, or `addEvents` calls (`app_id`, `cluster`, `region`, custom enrichments, etc.) are NOT visible to format strings, format-level `discard:` filters, or `rewrites` regex inputs. They ARE visible to `mappings` predicates and `mappings` op `from:` paths, since mappings run after parsing. If you need to gate a format on a vendor or app sentinel, encode it in the message body or use a `format: "..."` that anchors on a string the message contains. Don't try to read those attributes from inside the format engine.
+> **The parser only sees `message`.** Ingest-time attributes added by collectors, relays, or HEC ingest (`app_id`, `cluster`, `region`, custom enrichments, etc.) are NOT visible to format strings, format-level `discard:` filters, or `rewrites` regex inputs. They ARE visible to `mappings` predicates and `mappings` op `from:` paths, since mappings run after parsing. If you need to gate a format on a vendor or app sentinel, encode it in the message body or use a `format: "..."` that anchors on a string the message contains. Don't try to read those attributes from inside the format engine.
 
 > **There is NO `from:` directive on `format` entries.** Only the keys listed in the example object above (`id`, `attributes`, `format`, `discard`, `halt`, `repeat`, plus `rewrites`) are honored. A spurious `from: "<somefield>"` next to `format:` is silently ignored, and the format is run against the raw line — which, combined with a greedy regex like `[\s\S]+`, can clobber every captured field with the entire log message on every event. The `from:` key only exists inside `mappings` ops (`{rename: {from, to}}`, `{copy: {from, to}}`, etc.). If you want a format-like rewrite to operate against a specific captured field, you have two real options: (1) a `rewrites` entry on the same format with `input: "<fieldname>"`, or (2) a follow-up `mappings` op that reads from that field.
 
@@ -285,5 +285,4 @@ Mutually exclusive with everything else. Aliases cannot chain (target must be a 
 
 - Per-event parse limit: **just under 50,000 characters.** Oversize events are truncated *before* parsing.
 - Per-joined event via line groupers: **100,000 characters.**
-- Per `uploadLogs` body: **6 MB.**
-- Per tenant, per day via `uploadLogs`: **10 GB.** Use `addEvents` for higher volume.
+- HEC ingest enforces per-request and per-day size limits (see the HEC tooling for current caps).

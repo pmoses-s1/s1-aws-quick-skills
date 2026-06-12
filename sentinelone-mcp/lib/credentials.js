@@ -3,13 +3,12 @@
  *
  * Resolution order (highest wins):
  *   1. Environment variables
- *   2. S1_CREDS_FILE (explicit absolute path; recommended for VM deployments)
- *   3. COWORK_WORKSPACE/credentials.json (legacy workspace support)
- *   4. QUICKWORK_WORKSPACE/credentials.json (Amazon Quick workspace)
- *   5. Walk-up from cwd looking for credentials.json
- *   6. ~/mnt/<any-folder>/credentials.json (workspace mounts)
- *   7. CLAUDE_CONFIG_DIR/sentinelone/credentials.json (legacy)
- *   8. ~/.config/sentinelone/credentials.json
+ *   2. S1_CREDS_FILE (explicit absolute path; recommended for team / VM deployments)
+ *   3. COWORK_WORKSPACE/credentials.json
+ *   4. Walk-up from cwd looking for credentials.json
+ *   5. ~/mnt/<any-folder>/credentials.json (Amazon Quick workspace mounts)
+ *   6. CLAUDE_CONFIG_DIR/sentinelone/credentials.json
+ *   7. ~/.config/sentinelone/credentials.json
  */
 
 import { readFileSync, existsSync, readdirSync } from 'fs';
@@ -19,11 +18,10 @@ import { homedir } from 'os';
 const CRED_FILENAMES = [
   'credentials.json',
   '.sentinelone/credentials.json',
-  '.quickwork/sentinelone/credentials.json',
   '.claude/sentinelone/credentials.json',
 ];
 
-const MNT_SKIP = new Set(['.claude', '.quickwork', '.auto-memory', '.remote-plugins', 'outputs', 'uploads']);
+const MNT_SKIP = new Set(['.claude', '.auto-memory', '.remote-plugins', 'outputs', 'uploads']);
 
 function tryLoad(dir) {
   for (const rel of CRED_FILENAMES) {
@@ -54,13 +52,6 @@ function discoverCredentials() {
     if (found) return found;
   }
 
-  // 2b. QUICKWORK_WORKSPACE env (Amazon Quick)
-  const qwWs = process.env.QUICKWORK_WORKSPACE;
-  if (qwWs) {
-    const found = tryLoad(qwWs);
-    if (found) return found;
-  }
-
   // 2. Walk up from cwd
   let dir;
   try { dir = process.cwd(); } catch { dir = '/'; }
@@ -72,7 +63,7 @@ function discoverCredentials() {
     dir = parent;
   }
 
-  // 3. ~/mnt/* scan (workspace mounts)
+  // 3. ~/mnt/* scan (Amazon Quick workspace mounts)
   const homeMnt = join(homedir(), 'mnt');
   if (existsSync(homeMnt)) {
     try {
@@ -85,7 +76,7 @@ function discoverCredentials() {
     } catch { /* skip */ }
   }
 
-  // 4. CLAUDE_CONFIG_DIR plugin creds (legacy)
+  // 4. CLAUDE_CONFIG_DIR plugin creds
   const ccDir = process.env.CLAUDE_CONFIG_DIR;
   if (ccDir) {
     const p = join(ccDir, 'sentinelone', 'credentials.json');
@@ -116,7 +107,6 @@ export function getCreds() {
     S1_CONSOLE_API_TOKEN: e('S1_CONSOLE_API_TOKEN') || e('S1_API_TOKEN'),
     S1_HEC_INGEST_URL:    e('S1_HEC_INGEST_URL'),
     SDL_XDR_URL:          e('SDL_XDR_URL') || e('SDL_BASE_URL'),
-    SDL_LOG_WRITE_KEY:    e('SDL_LOG_WRITE_KEY'),
     SDL_CONFIG_WRITE_KEY: e('SDL_CONFIG_WRITE_KEY'),
     SDL_CONFIG_READ_KEY:  e('SDL_CONFIG_READ_KEY'),
     SDL_LOG_READ_KEY:     e('SDL_LOG_READ_KEY'),

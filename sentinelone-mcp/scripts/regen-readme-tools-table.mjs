@@ -44,7 +44,7 @@ const TOOL_SKILL = {
   sdl_get_file:                  'sentinelone-sdl-api / sdl-dashboard / sdl-log-parser',
   sdl_put_file:                  'sentinelone-sdl-api / sdl-dashboard / sdl-log-parser',
   sdl_delete_file:               'sentinelone-sdl-api',
-  sdl_upload_logs:               'sentinelone-sdl-api / sdl-log-parser',
+  hec_ingest:                    'sentinelone-sdl-api / sdl-log-parser',
   // Hyperautomation
   ha_list_workflows:             'sentinelone-hyperautomation',
   ha_get_workflow:               'sentinelone-hyperautomation',

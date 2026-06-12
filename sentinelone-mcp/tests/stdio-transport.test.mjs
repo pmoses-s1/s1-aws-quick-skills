@@ -78,7 +78,7 @@ test('stdio: initialize returns expected envelope', async () => {
   assert.equal(r.id, 1);
   assert.ok(r.result);
   assert.equal(r.result.serverInfo.name, 'sentinelone-mcp-server');
-  assert.equal(r.result.serverInfo.version, '1.1.0');
+  assert.equal(r.result.serverInfo.version, '1.2.1');
   assert.ok(r.result.capabilities.tools);
 });
 

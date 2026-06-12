@@ -27,7 +27,6 @@ If the source the dashboard is meant to cover does not appear, the dashboard can
 c.keys["log_read_key"]    = ""
 c.keys["config_read_key"] = ""
 c.keys["config_write_key"] = ""
-c.keys["log_write_key"]   = ""
 
 res = c.query(filter=f"dataSource.name=='{source}'", max_count=50, start_time="7d")
 attrs = sorted({k for m in res["matches"] for k in (m.get("attributes") or {}).keys()})
@@ -187,7 +186,6 @@ c = SDLClient()
 c.keys["log_read_key"] = ""
 c.keys["config_read_key"] = ""
 c.keys["config_write_key"] = ""
-c.keys["log_write_key"] = ""
 
 results = {}
 for p in panels:

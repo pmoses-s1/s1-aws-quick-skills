@@ -5,7 +5,6 @@
  *   putFile             → config_write_key
  *   getFile / listFiles → config_write_key || config_read_key || console_api_token
  *   V1 query methods    → config_write_key || config_read_key || log_read_key || console_api_token
- *   uploadLogs          → log_write_key  (console token NOT accepted here)
  *
  * All SDL endpoints live at SDL_XDR_URL (e.g. https://xdr.us1.sentinelone.net).
  * The Authorization header is: Bearer <key>
@@ -30,7 +29,6 @@ function pickKey(chain) {
     // Confirmed: SDL_CONFIG_WRITE_KEY does NOT grant "View logs" permission on /api/query.
     // SDL_LOG_READ_KEY must be first in chain for V1 query to succeed.
     log_read:          [c.SDL_LOG_READ_KEY, c.SDL_CONFIG_READ_KEY, c.SDL_CONFIG_WRITE_KEY, c.S1_CONSOLE_API_TOKEN],
-    log_write_strict:  [c.SDL_LOG_WRITE_KEY],  // console token NOT accepted
   };
   const candidates = chains[chain] || chains.config_read;
   const key = candidates.find(k => k);
@@ -115,36 +113,6 @@ export async function deleteFile(path, expectedVersion) {
   const body = { path, deleteFile: true };
   if (expectedVersion !== undefined) body.expectedVersion = expectedVersion;
   return sdlFetch('POST', '/api/putFile', { body, chain: 'config_write' });
-}
-
-// ─── Log ingestion ────────────────────────────────────────────────────────────
-
-/** POST /api/uploadLogs — upload raw text log lines (newline-separated events). */
-export async function uploadLogs(logContent, { parser, serverHost, logfile } = {}) {
-  const extraHeaders = {};
-  if (parser)     extraHeaders['parser']      = parser;
-  if (serverHost) extraHeaders['server-host'] = serverHost;
-  if (logfile)    extraHeaders['logfile']      = logfile;
-
-  const raw = typeof logContent === 'string' ? Buffer.from(logContent, 'utf-8') : logContent;
-  return sdlFetch('POST', '/api/uploadLogs', {
-    chain: 'log_write_strict',
-    rawBody: raw,
-    contentType: 'text/plain',
-    extraHeaders,
-  });
-}
-
-/** POST /api/addEvents — ingest structured events (JSON). */
-export async function addEvents(events, session) {
-  const body = {
-    session: session || `mcp-${Date.now()}`,
-    events: events.map(e => ({
-      ts: e.ts || BigInt(Date.now()) * 1_000_000n,
-      attrs: e.attrs || e,
-    })),
-  };
-  return sdlFetch('POST', '/api/addEvents', { body, chain: 'log_write_strict' });
 }
 
 // ─── V1 Query (schema discovery) ─────────────────────────────────────────────

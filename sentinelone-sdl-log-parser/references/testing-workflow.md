@@ -5,7 +5,7 @@ There is **no dedicated `testParser` REST endpoint** on the SDL tenant. The in-c
 ## Prerequisites
 
 - `sentinelone-sdl-api` skill is installed.
-- `credentials.json` is in the repo folder (or parent directory) and contains at minimum `SDL_CONFIG_WRITE_KEY` and `SDL_LOG_READ_KEY` plus a HEC ingest token, or `S1_CONSOLE_API_TOKEN` (the same management-console JWT; legacy `SDL_CONSOLE_API_TOKEN` is also accepted). The MCP server auto-discovers it by walking up the directory tree.
+- `credentials.json` is dropped directly into your repo folder and contains at minimum `SDL_CONFIG_WRITE_KEY` and `SDL_LOG_READ_KEY` plus a HEC ingest token, or `S1_CONSOLE_API_TOKEN` (the same management-console JWT; legacy `SDL_CONSOLE_API_TOKEN` is also accepted). The MCP server auto-discovers it by walking up the directory tree.
 
 - You have a draft parser JSON and a sample log file.
 

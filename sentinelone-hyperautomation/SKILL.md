@@ -13,10 +13,10 @@ description: >
 
 # SentinelOne Hyperautomation Skill
 
-This skill enables Amazon Quick to design and generate valid SentinelOne Hyperautomation workflow
+This skill enables Claude to design and generate valid SentinelOne Hyperautomation workflow
 JSON, explain the logic behind workflows, and optionally submit them to a live console via API.
 
-> **Sandbox proxy blocked?** If import/export API calls to `*.sentinelone.net` fail with a connection or proxy error inside the Amazon Quick sandbox, use the `sentinelone-mcp` server instead. It runs locally via `node` and bypasses the sandbox proxy entirely. Setup: add it in Amazon Quick → Settings → Capabilities → MCP (see `sentinelone-mcp/README.md`). The MCP server exposes `ha_list_workflows`, `ha_get_workflow`, `ha_import_workflow`, and `ha_export_workflow` — all running from your machine against the Hyperautomation API.
+> **Sandbox proxy blocked?** If import/export API calls to `*.sentinelone.net` fail with a connection or proxy error inside the Amazon Quick sandbox, use the `sentinelone-mcp` server instead. It runs locally via `node` and bypasses the sandbox proxy entirely. Setup: add it in Amazon Quick Settings > Capabilities > MCP. The MCP server exposes `ha_list_workflows`, `ha_get_workflow`, `ha_import_workflow`, and `ha_export_workflow` — all running from your machine against the Hyperautomation API.
 
 ## Minimum viable workflow JSON (smoke test)
 
@@ -102,8 +102,8 @@ Self-check against `references/validation-rules.md` before presenting the workfl
 ### Step 5 — API submission (optional)
 If the user wants to submit to a live console, read `references/api-integration.md`.
 
-**Credentials**: The MCP server auto-discovers credentials from environment variables
-(Settings > Capabilities > MCP) or by walking up the directory tree for `credentials.json`.
+**Credentials**: The MCP server's credential resolver auto-discovers a `credentials.json`
+dropped directly into the user's repo folder at the start of every session.
 If the file is missing, ask the user to drop a `credentials.json` into their project folder.
 
 Resolution priority (highest wins):
@@ -119,8 +119,8 @@ from pathlib import Path
 _creds = {}
 for candidate in (
     Path.home() / ".claude" / "sentinelone" / "credentials.json",
-    Path(os.environ.get("WORKSPACE_DIR", "")) / ".sentinelone" / "credentials.json"
-        if os.environ.get("WORKSPACE_DIR") else None,
+    Path(os.environ.get("COWORK_WORKSPACE", "")) / ".sentinelone" / "credentials.json"
+        if os.environ.get("COWORK_WORKSPACE") else None,
     Path(os.environ.get("CLAUDE_CONFIG_DIR", "")) / "sentinelone" / "credentials.json"
         if os.environ.get("CLAUDE_CONFIG_DIR") else None,
     Path.home() / ".config" / "sentinelone" / "credentials.json",
@@ -232,3 +232,26 @@ Amazon Quick sandbox proxy entirely. Use `ha_list_workflows`, `ha_get_workflow`,
 and `ha_export_workflow` directly instead of falling back to the `sentinelone-mgmt-console-api`
 skill scripts. The MCP server runs locally on your machine and makes direct HTTPS calls to
 `*.sentinelone.net` without proxy interference.
+
+### Deployment gotchas (confirmed 2026-06-11 on usea1-purple)
+
+- **`ha_import_workflow` does not scope to a site.** It posts to `/import` with no `siteIds`, so
+  on a site-scoped tenant it returns the misleading `403 "Insufficient permissions"` — not a role
+  problem. For a site-scoped deploy, call the REST endpoint directly with the scope param:
+  `POST /web/api/v2.1/hyper-automate/api/public/workflow-import-export/import?siteIds=<id>` with
+  body `{"data": <workflow>}` (e.g. via the `sentinelone-mgmt-console-api` POST helper). Same
+  applies to `activation` and `deactivate` — always append `?siteIds=<id>`.
+- **There is no in-place update.** Import always creates a NEW workflow. Re-importing a name that
+  already exists succeeds but the console auto-appends ` (1)`, ` (2)`, … to the name. To "edit" a
+  deployed workflow you must delete/archive the old one and re-import (or edit it in the UI).
+- **`ha_archive_workflow` was unreliable** — it hit `/hyper-automate/api/v1/workflows/archive` and
+  returned `500 Internal server error`. The public API exposes no workflow delete/archive endpoint
+  (only `deactivate`), so removing a workflow may require the console UI. (Needs re-confirmation.)
+- **Activation can fail with `400 "Some actions in this workflow requires configuration"`** when an
+  integration-backed action has no bound connection. Bind the connection (Hyperautomation →
+  Integrations) before activating. (Observed on a loop-based workflow; simpler workflows with the
+  same unbound integration activated fine, so the exact trigger is unconfirmed.)
+- **Publishing without activating is UI-only.** The public API has no "publish to team library"
+  call; the only programmatic way to make a private draft visible to the team is to activate it
+  (activation auto-publishes). To get "shared but not running", activate then deactivate — the
+  workflow stays published/visible and stops on the schedule.

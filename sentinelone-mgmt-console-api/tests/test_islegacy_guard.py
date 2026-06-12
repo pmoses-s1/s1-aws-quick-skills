@@ -59,6 +59,20 @@ def main() -> None:
     out = _maybe_inject_islegacy("GET", f"/web/api/v2.1/cloud-detection/rules/{rule_id}", None)
     _assert(out == {"isLegacy": "false"}, "GET /cloud-detection/rules/<id> → isLegacy injected")
 
+    # Callers that inline query params in the path string (instead of passing
+    # them via the params dict) must still trigger injection. An end-anchored
+    # regex used to skip these, silently dropping scheduled rules.
+    out = _maybe_inject_islegacy("GET", "/web/api/v2.1/cloud-detection/rules?limit=200", None)
+    _assert(out == {"isLegacy": "false"}, "GET /cloud-detection/rules?limit=200 → isLegacy injected")
+
+    out = _maybe_inject_islegacy("GET", f"/web/api/v2.1/cloud-detection/rules/{rule_id}?expanded=true", None)
+    _assert(out == {"isLegacy": "false"}, "GET /cloud-detection/rules/<id>?query → isLegacy injected")
+
+    # Adjacent names that merely start with "rules" must NOT match — the guard
+    # requires `/`, `?`, or end-of-string immediately after "rules".
+    out = _maybe_inject_islegacy("GET", "/web/api/v2.1/cloud-detection/rules-export", None)
+    _assert(out == {}, "GET /cloud-detection/rules-export → no injection")
+
     # Existing params are preserved, not clobbered.
     out = _maybe_inject_islegacy(
         "GET",

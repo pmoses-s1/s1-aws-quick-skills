@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Mac validation script for sentinelone-mcp v1.1.0.
+# Mac validation script for sentinelone-mcp v1.2.1.
 #
 # Runs the same test matrix as Linux:
 #   - syntax-check every .js/.mjs file
@@ -10,7 +10,7 @@
 #
 # Run this from the sentinelone-mcp/ directory on your Mac:
 #
-#   cd ~/path/to/s1-aws-quick-skills/sentinelone-mcp
+#   cd ~/path/to/claude-skills/sentinelone-mcp
 #   bash scripts/test-mac.sh
 #
 # All checks should pass with green PASS markers. Any FAIL line should be
@@ -47,7 +47,7 @@ fi
 pass "Node $(node --version) on $(uname -srm)"
 
 if [[ ! -f "index.js" ]]; then
-  fail "Not in the sentinelone-mcp directory" "cd to .../s1-aws-quick-skills/sentinelone-mcp first"
+  fail "Not in the sentinelone-mcp directory" "cd to .../claude-skills/sentinelone-mcp first"
   exit 1
 fi
 pass "running from sentinelone-mcp directory"
@@ -100,12 +100,12 @@ fi
 # ─── 5. CLI flag sanity ───────────────────────────────────────────────────────
 
 step "5. CLI flag sanity"
-if [[ "$(node index.js --version 2>/dev/null)" == "1.1.0" ]]; then
-  pass "--version returns 1.1.0"
+if [[ "$(node index.js --version 2>/dev/null)" == "1.2.1" ]]; then
+  pass "--version returns 1.2.1"
 else
-  fail "--version did not return 1.1.0" "Got: $(node index.js --version 2>&1)"
+  fail "--version did not return 1.2.1" "Got: $(node index.js --version 2>&1)"
 fi
-if node index.js --help 2>&1 | grep -q "sentinelone-mcp 1.1.0"; then
+if node index.js --help 2>&1 | grep -q "sentinelone-mcp 1.2.1"; then
   pass "--help renders"
 else
   fail "--help broken" "$(node index.js --help 2>&1 | head -5)"

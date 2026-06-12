@@ -1,17 +1,16 @@
-# sentinelone-mgmt-console-api (Amazon Quick skill)
+# sentinelone-mgmt-console-api (Claude skill)
 
-An Amazon Quick skill wrapping the SentinelOne Management Console API (Swagger 2.1, 781 operations, 113 tags) plus two GraphQL surfaces: **Unified Alert Management** (modern multi-source alert triage and bulk actions) and **Purple AI** (natural-language SDL queries).
+A Claude skill wrapping the SentinelOne Management Console API (Swagger 2.1, 781 operations, 113 tags) plus two GraphQL surfaces: **Unified Alert Management** (modern multi-source alert triage and bulk actions) and **Purple AI** (natural-language SDL queries).
 
 ## Install
 
 Copy this folder into your user skills directory:
 
 ```bash
-# Add the s1-aws-quick-skills folder in Amazon Quick:
-# Click the folder icon (📁) in chat → Add folder → select this repo
+cp -r sentinelone-mgmt-console-api ~/.claude/skills/
 ```
 
-In Amazon Quick/Amazon Quick (CLI), the path is:
+In Amazon Quick/Claude Code, the path is:
 
 ```
 /sessions/<session>/mnt/.claude/skills/sentinelone-mgmt-console-api/
@@ -21,7 +20,7 @@ In Amazon Quick/Amazon Quick (CLI), the path is:
 
 ### With sentinelone-mcp (recommended)
 
-Set credentials as environment variables in the MCP configuration (Settings → Capabilities → MCP) inside the `sentinelone-mcp` server entry. No `credentials.json` file is needed:
+Set credentials as environment variables on the `sentinelone-mcp` MCP server (Settings > Capabilities > MCP):
 
 ```json
 "env": {
@@ -33,7 +32,7 @@ Set credentials as environment variables in the MCP configuration (Settings → 
 
 ### Without sentinelone-mcp (direct skill use)
 
-Set credentials as environment variables on the `sentinelone-mcp` MCP server (Settings > Capabilities > MCP), or drop a `credentials.json` into the repo folder (see [`../credentials.example.json`](../credentials.example.json) for all available keys). The MCP server auto-discovers it by walking up the directory tree.
+Drop a `credentials.json` file into your repo folder (see [`../credentials.example.json`](../credentials.example.json) for all available keys). The MCP server auto-discovers it by walking up the directory tree. To trigger a manual refresh: `bash scripts/bootstrap_creds.sh`.
 
 ```json
 {
@@ -51,7 +50,7 @@ Create the API token in the S1 console: Settings → Users → Service Users →
 
 ```bash
 pip install requests
-cd <s1-aws-quick-skills>/sentinelone-mgmt-console-api
+cd ~/.claude/skills/sentinelone-mgmt-console-api
 python scripts/s1_client.py
 ```
 
@@ -92,8 +91,8 @@ Purple AI answers questions about SDL telemetry (process/network/file events, in
 
 ## Layout
 
-- `SKILL.md`: instructions Amazon Quick reads when the skill triggers
-- `credentials.json` (in repo root or parent dir, optional): credentials for direct skill use; auto-discovered by walking up the directory tree
+- `SKILL.md`: instructions Claude reads when the skill triggers
+- `<project folder>/credentials.json` (optional): credentials for direct skill use; auto-discovered by the MCP server's credential resolver
 - `scripts/bootstrap_creds.sh`: idempotent helper to copy workspace creds into the sandbox-local path
 - `scripts/s1_client.py`: REST client (auth, pooled HTTP, retries, cursor pagination, parallel `get_many()`, optional cache)
 - `scripts/call_endpoint.py`: REST CLI wrapper

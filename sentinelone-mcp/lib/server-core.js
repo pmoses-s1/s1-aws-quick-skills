@@ -41,7 +41,7 @@ function loadSocContext() {
       try { return readFileSync(p, 'utf-8'); } catch { /* skip */ }
     }
   }
-  return '# SentinelOne SOC Analyst Context\n\n_CLAUDE.md not found. Place it in the skills folder added to Amazon Quick, or set S1_CLAUDE_MD_PATH to an absolute path._';
+  return '# SentinelOne SOC Analyst Context\n\n_CLAUDE.md not found. Place it in your repo folder, or set S1_CLAUDE_MD_PATH to an absolute path._';
 }
 
 const SOC_CONTEXT = loadSocContext();

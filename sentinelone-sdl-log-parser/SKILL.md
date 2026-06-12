@@ -8,7 +8,7 @@ description: Use whenever the user wants to author, edit, debug, validate, or ex
 
 This skill turns raw log samples into deployed, validated SDL parser definitions. A parser is an *augmented-JSON* file at `/logParsers/<name>` on the SDL tenant that extracts fields from each ingested line. The parser editor and the `Test Parser` button in the console run the parser client-side in JavaScript; this skill mirrors that workflow programmatically and finishes by ingesting a sample through the deployed parser to confirm the actual ingest path works.
 
-> **Sandbox proxy blocked?** If `putFile` or HEC ingest calls to `*.sentinelone.net` fail with a connection or proxy error inside the sandbox, use the `sentinelone-mcp` server instead. It runs locally via `node` and bypasses the sandbox proxy entirely. Setup: add it in Amazon Quick Settings > Capabilities > MCP (see `sentinelone-mcp/README.md`). Use `sdl_put_file` to deploy the parser and `sdl_upload_logs` to run the ingest validation step - both execute from your machine, not the sandbox.
+> **Sandbox proxy blocked?** If `putFile` or HEC ingest calls to `*.sentinelone.net` fail with a connection or proxy error inside the Amazon Quick sandbox, use the `sentinelone-mcp` server instead. It runs locally via `node` and bypasses the sandbox proxy entirely. Setup: add it in Amazon Quick Settings > Capabilities > MCP. Use `sdl_put_file` to deploy the parser and `hec_ingest` to run the ingest validation step — both execute from your machine, not the sandbox.
 
 ## Two hard rules (every parser, every time)
 

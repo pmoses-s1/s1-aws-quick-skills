@@ -22,13 +22,12 @@ Credential resolution order (highest wins, applied last):
 
 Canonical keys:
   SDL_XDR_URL            -> base_url  (e.g. https://xdr.us1.sentinelone.net)
-  SDL_LOG_WRITE_KEY      -> log_write_key     (uploadLogs, addEvents)
   SDL_LOG_READ_KEY       -> log_read_key      (query/numeric/facet/timeseries/powerQuery)
   SDL_CONFIG_READ_KEY    -> config_read_key   (listFiles, getFile)
   SDL_CONFIG_WRITE_KEY   -> config_write_key  (putFile and everything above)
   S1_CONSOLE_API_TOKEN   -> console_api_token (mgmt-console JWT; works for
                                                SDL query and config methods,
-                                               NOT uploadLogs. Same JWT used
+                                               not raw-log ingestion. Same JWT used
                                                by S1Client.)
   SDL_S1_SCOPE           -> s1_scope          (required with console token when multi-site/account)
   SDL_VERIFY_TLS         -> verify_tls        (default true)
@@ -41,10 +40,6 @@ Deprecated aliases (still read but logged once):
 Usage:
     from sdl_client import SDLClient
     c = SDLClient()
-
-    # log write
-    c.upload_logs("hello from python", parser="uploadLogs", server_host="dev-box")
-    c.add_events(events=[{"ts": c.now_ns(), "attrs": {"message": "structured event", "app": "demo"}}])
 
     # log read
     c.power_query("dataset='accesslog' | group count() by status", start_time="1h")
@@ -181,7 +176,7 @@ class SandboxProxyBlockedError(RuntimeError):
 
     Recovery steps:
       1. Use mcp__sentinelone-mcp__sdl_get_file, sdl_put_file, sdl_list_files,
-         sdl_upload_logs, or powerquery_run instead of running this script.
+         or powerquery_run instead of running this script.
       2. These tools run locally and make direct HTTPS calls without proxy interference.
       3. This is not a credential issue. Do not change query logic to debug it.
     """
@@ -212,7 +207,6 @@ def _apply_sdl_keys(creds: Dict[str, Any], cfg: Dict[str, Any], source: str) -> 
             )
             _warned_legacy_url = True
     direct_map = {
-        "SDL_LOG_WRITE_KEY": "log_write_key",
         "SDL_LOG_READ_KEY": "log_read_key",
         "SDL_CONFIG_READ_KEY": "config_read_key",
         "SDL_CONFIG_WRITE_KEY": "config_write_key",
@@ -283,7 +277,6 @@ def _load_config() -> Dict[str, Any]:
     if env_xdr_url:
         cfg["base_url"] = env_xdr_url
     direct_env = {
-        "SDL_LOG_WRITE_KEY": "log_write_key",
         "SDL_LOG_READ_KEY": "log_read_key",
         "SDL_CONFIG_READ_KEY": "config_read_key",
         "SDL_CONFIG_WRITE_KEY": "config_write_key",
@@ -309,13 +302,10 @@ class SDLClient:
 
     # --- key selection table -------------------------------------------------
     # Read-log methods fall back: log_read -> config_read -> config_write -> console
-    # Log-write methods: log_write -> console (uploadLogs is console-incompatible)
     # Config-read methods: config_read -> config_write -> console
     # Config-write methods: config_write -> console
     KEY_CHAINS = {
         "log_read": ("log_read_key", "config_read_key", "config_write_key", "console_api_token"),
-        "log_write": ("log_write_key", "console_api_token"),  # console not valid for uploadLogs
-        "log_write_strict": ("log_write_key",),  # uploadLogs requires a real log-write key
         "config_read": ("config_read_key", "config_write_key", "console_api_token"),
         "config_write": ("config_write_key", "console_api_token"),
     }
@@ -341,7 +331,6 @@ class SDLClient:
             )
 
         self.keys = {
-            "log_write_key": cfg.get("log_write_key") or "",
             "log_read_key": cfg.get("log_read_key") or "",
             "config_read_key": cfg.get("config_read_key") or "",
             "config_write_key": cfg.get("config_write_key") or "",
@@ -415,7 +404,7 @@ class SDLClient:
                 raise SandboxProxyBlockedError(
                     f"Sandbox proxy blocked HTTPS to {self.base_url}. "
                     f"Use sentinelone-mcp MCP tools instead (sdl_get_file, sdl_put_file, "
-                    f"sdl_list_files, sdl_upload_logs, powerquery_run), which run locally "
+                    f"sdl_list_files, powerquery_run), which run locally "
                     f"and bypass the sandbox proxy entirely. This is not a credential issue."
                 ) from exc
             status = resp.status_code
@@ -448,84 +437,6 @@ class SDLClient:
             if not msg:
                 msg = resp.text[:500]
             raise SDLAPIError(status, msg or f"status={sdl_status}", body)
-
-    # =========================================================================
-    # Log write
-    # =========================================================================
-    def upload_logs(
-        self,
-        content: Union[str, bytes],
-        parser: Optional[str] = None,
-        server_host: Optional[str] = None,
-        logfile: Optional[str] = None,
-        nonce: Optional[str] = None,
-        extra_server_fields: Optional[Dict[str, str]] = None,
-        content_type: str = "text/plain",
-    ) -> Dict[str, Any]:
-        """POST /api/uploadLogs — simple plain-text/raw upload.
-
-        `content` is sent as the raw request body. Newline-separated entries
-        become separate events. Body must be <= 6 MB; daily cap is 10 GB.
-
-        uploadLogs requires a real Log Write Access key — Console user API
-        tokens are NOT accepted for this endpoint.
-        """
-        headers: Dict[str, str] = {}
-        if parser:
-            headers["parser"] = parser
-        if server_host:
-            headers["server-host"] = server_host
-        if logfile:
-            headers["logfile"] = logfile
-        if nonce:
-            headers["Nonce"] = nonce
-        if extra_server_fields:
-            for k, v in extra_server_fields.items():
-                # "server-{value}" convention (e.g. server-region)
-                key = k if k.lower().startswith("server-") else f"server-{k}"
-                headers[key] = v
-
-        data = content.encode("utf-8") if isinstance(content, str) else content
-        return self._request(
-            "POST",
-            "/api/uploadLogs",
-            chain="log_write_strict",
-            data=data,
-            content_type=content_type,
-            extra_headers=headers,
-        )
-
-    def add_events(
-        self,
-        events: List[Dict[str, Any]],
-        session: Optional[str] = None,
-        session_info: Optional[Dict[str, Any]] = None,
-        threads: Optional[List[Dict[str, str]]] = None,
-        logs: Optional[List[Dict[str, Any]]] = None,
-    ) -> Dict[str, Any]:
-        """POST /api/addEvents — structured event ingestion.
-
-        `session` MUST be stable per upload process (a UUID generated at
-        startup). One in-flight request per session; keep throughput near
-        2.5 MB/s per session, 10 MB/s max, 50K sessions per 5-min window.
-
-        Every event needs `ts` (nanoseconds since epoch, as a STRING to
-        avoid float precision loss) and `attrs` (object). `sev` defaults
-        to 3 (info).
-        """
-        if not events:
-            raise ValueError("events must be a non-empty list")
-        body: Dict[str, Any] = {
-            "session": session or str(uuid.uuid4()),
-            "events": events,
-        }
-        if session_info:
-            body["sessionInfo"] = session_info
-        if threads:
-            body["threads"] = threads
-        if logs:
-            body["logs"] = logs
-        return self._request("POST", "/api/addEvents", chain="log_write", json_body=body)
 
     # =========================================================================
     # Log read (queries)
@@ -731,12 +642,12 @@ class SDLClient:
     # =========================================================================
     @staticmethod
     def now_ns() -> str:
-        """Current epoch nanoseconds as a string (safe for addEvents.ts)."""
+        """Current epoch nanoseconds as a string."""
         return str(time.time_ns())
 
     @staticmethod
     def new_session_id() -> str:
-        """Generate a UUID suitable for addEvents.session."""
+        """Generate a UUID string."""
         return str(uuid.uuid4())
 
     def iter_query(

@@ -37,6 +37,9 @@ Run this checklist before outputting any workflow JSON.
 - [ ] `break_loop` actions inside a loop have `"connected_to": []`
 - [ ] `loop_type: "dynamic"` always has a non-null `object_to_iterate`
 - [ ] `loop_type: "while"` or `"fixed"` has `object_to_iterate: null`
+- [ ] In a `while` loop, the terminating condition has ONLY a `"true"` → `break_loop` edge. Do NOT
+  add a `"false"` back-edge to an earlier inner action — the loop re-runs the inner block on its
+  own, and a manual back-edge makes import fail with `422 "Invalid workflow data"`.
 
 ## Condition rules
 
@@ -104,3 +107,6 @@ Run this checklist before outputting any workflow JSON.
 - ❌ Generating `connection_id` UUIDs — always use `null` for import-ready JSON
 - ❌ Using `Function.JQ` with complex expressions directly — store in Variable first
 - ❌ Mixing `condition` and `conditions` in the same condition action data object
+- ❌ `send_email` attachments with `name`/`content` keys — the importer requires `file_name` and
+  `file_content` (import `422 "Field required"` otherwise). `file_content` is base64.
+- ❌ Wiring a `while`-loop condition's `false` branch back into the loop body — omit it (see Loop rules)

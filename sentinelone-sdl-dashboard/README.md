@@ -1,23 +1,22 @@
-# sentinelone-sdl-dashboard (Amazon Quick skill)
+# sentinelone-sdl-dashboard (Claude skill)
 
-An Amazon Quick skill for designing, authoring, and deploying SentinelOne **Singularity Data Lake (SDL) dashboards**: from a single panel to a full multi-tab SOC dashboard. Covers all panel types, multi-tab layouts, parameters, and full dashboard JSON authoring with community examples.
+A Claude skill for designing, authoring, and deploying SentinelOne **Singularity Data Lake (SDL) dashboards**: from a single panel to a full multi-tab SOC dashboard. Covers all panel types, multi-tab layouts, parameters, and full dashboard JSON authoring with community examples.
 
 ## Install
 
 Copy this folder into your user skills directory:
 
 ```bash
-# Add the s1-aws-quick-skills folder in Amazon Quick:
-# Click the folder icon (📁) in chat → Add folder → select this repo
+cp -r sentinelone-sdl-dashboard ~/.claude/skills/
 ```
 
-In Amazon Quick/Amazon Quick (CLI), the path is:
+In Amazon Quick/Claude Code, the path is:
 
 ```
 /sessions/<session>/mnt/.claude/skills/sentinelone-sdl-dashboard/
 ```
 
-Add the `s1-aws-quick-skills` folder to Amazon Quick (Settings > Capabilities > Folders) and this skill is included automatically.
+Or install the full plugin (recommended): see [`sentinelone-skills-plugin/`](../sentinelone-skills-plugin/).
 
 ## Usage
 
@@ -36,7 +35,7 @@ This skill has no Python client of its own: dashboards are authored as JSON and 
 
 ## Layout
 
-- `SKILL.md`: instructions Amazon Quick reads when the skill triggers.
+- `SKILL.md`: instructions Claude reads when the skill triggers.
 - `references/panel-type-cheatsheet.md`: JSON schema for every panel type with annotated examples.
 - `references/common-queries.md`: ready-to-use PQ queries for security, network, identity, and compliance dashboards.
 - `references/community-examples.md`: full dashboard JSON examples from the SentinelOne community.

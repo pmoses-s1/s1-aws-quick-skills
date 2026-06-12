@@ -10,7 +10,7 @@ PowerQuery (PQ) is SentinelOne's pipeline query language for the Singularity Dat
 
 Use this skill to write correct, efficient, runnable PowerQueries for threat hunting, investigations, detection rule bodies, and dashboards.
 
-> **Sandbox proxy blocked?** If the LRQ API at `POST /sdl/v2/api/queries` on your console host fails with a connection or proxy error inside the sandbox, use the `sentinelone-mcp` server instead. It runs locally via `node` and bypasses the sandbox proxy entirely. Setup: add it in Amazon Quick Settings > Capabilities > MCP (see `sentinelone-mcp/README.md`). The MCP server exposes `powerquery_run`, `powerquery_enumerate_sources`, and `powerquery_schema_discover` - all running through the LRQ API on your machine.
+> **Sandbox proxy blocked?** If the LRQ API at `POST /sdl/v2/api/queries` on your console host fails with a connection or proxy error inside the Amazon Quick sandbox, use the `sentinelone-mcp` server instead. It runs locally via `node` and bypasses the sandbox proxy entirely. Setup: add it in Amazon Quick Settings > Capabilities > MCP. The MCP server exposes `powerquery_run`, `powerquery_enumerate_sources`, and `powerquery_schema_discover` — all running through the LRQ API on your machine.
 
 ## Workflow
 

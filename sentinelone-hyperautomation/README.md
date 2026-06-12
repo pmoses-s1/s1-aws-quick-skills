@@ -1,6 +1,6 @@
-# sentinelone-hyperautomation (Amazon Quick skill)
+# sentinelone-hyperautomation (Claude skill)
 
-An Amazon Quick skill for designing and generating SentinelOne Hyperautomation workflow JSON, with optional live console import via API.
+A Claude skill for designing and generating SentinelOne Hyperautomation workflow JSON, with optional live console import via API.
 
 ## What it does
 
@@ -13,18 +13,17 @@ An Amazon Quick skill for designing and generating SentinelOne Hyperautomation w
 
 ## Install
 
-This skill ships as part of the skills folder. Add the `s1-aws-quick-skills` folder to Amazon Quick (Settings > Capabilities > Folders) and it is included automatically.
+This skill ships as part of the `sentinelone-skills` plugin. Install the plugin and it is included automatically.
 
 To install individually, copy this folder into your user skills directory:
 
 ```bash
-# Add the s1-aws-quick-skills folder in Amazon Quick:
-# Click the folder icon (📁) in chat → Add folder → select this repo
+cp -r sentinelone-hyperautomation ~/.claude/skills/
 ```
 
 ## Configure
 
-Set credentials as environment variables in the MCP configuration (Settings → Capabilities → MCP) inside the `sentinelone-mcp` server entry (recommended), or drop a `credentials.json` into your workspace folder for direct skill use:
+Set credentials as environment variables on the `sentinelone-mcp` MCP server (Settings > Capabilities > MCP):
 
 ```json
 {
@@ -36,7 +35,7 @@ Set credentials as environment variables in the MCP configuration (Settings → 
 
 Use a **Console User (personal) API token**, not a Service User token. Workflows imported with a Service User token are owned by that service account and invisible to human users in the console UI.
 
-`S1_HEC_INGEST_URL` is the SentinelOne HEC ingest host (region-specific: see [SentinelOne Endpoint URLs by Region](https://community.sentinelone.com/s/article/000004961)). It is not used by this Hyperautomation skill, but is shown here so the credentials file is consistent across all skills in this repo (the mgmt-console skill's UAM Alert Interface uses it for OCSF alert/indicator ingest).
+`S1_HEC_INGEST_URL` is the SentinelOne HEC ingest host (region-specific: see [SentinelOne Endpoint URLs by Region](https://community.sentinelone.com/s/article/000004961)). It is not used by this Hyperautomation skill, but is shown here so the credentials file is consistent across all skills in this plugin (the mgmt-console skill's UAM Alert Interface uses it for OCSF alert/indicator ingest).
 
 ## Usage
 
@@ -46,11 +45,11 @@ Just describe the workflow in plain language:
 - "Create a scheduled workflow that runs a PowerQuery every morning and posts results to Slack"
 - "Generate a Hyperautomation workflow that enriches alerts with VirusTotal lookups"
 
-Amazon Quick will ask clarifying questions if needed, warn about any integrations that require pre-configuration, generate the workflow JSON, and optionally push it directly to your console.
+Claude will ask clarifying questions if needed, warn about any integrations that require pre-configuration, generate the workflow JSON, and optionally push it directly to your console.
 
 ## Layout
 
-- `SKILL.md`: instructions Amazon Quick reads when the skill triggers
+- `SKILL.md`: instructions Claude reads when the skill triggers
 - `references/workflow-schema.md`: envelope and action structure
 - `references/building-blocks.md`: exact shape of every action type
 - `references/functions-reference.md`: `{{Function.X()}}` syntax and PowerQuery patterns
@@ -59,4 +58,4 @@ Amazon Quick will ask clarifying questions if needed, warn about any integration
 
 ## Credit
 
-Originally authored by **Marco Rottigni**. Integrated into the sentinelone-skills repo with credential-resolver updates and API reference additions.
+Originally authored by **Marco Rottigni**. Integrated into the sentinelone-skills plugin with credential-resolver updates and API reference additions.

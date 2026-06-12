@@ -4,13 +4,13 @@ Three supported topologies, in order of complexity.
 
 | Topology | Who runs it | Transport | Auth | Use this when |
 |---|---|---|---|---|
-| **A. Single user, local** | One human | stdio | none | You use Amazon Quick on your own Mac or Linux laptop. |
-| **B. Single user, HTTP** | One human | Streamable HTTP, `127.0.0.1` only | none | You want one server you can curl, or have a non-standard MCP client that speaks Streamable HTTP. |
+| **A. Single user, local** | One human | stdio | none | You use Claude Desktop / Claude Code / Claude Amazon Quick on your own Mac or Linux laptop. |
+| **B. Single user, HTTP** | One human | Streamable HTTP, `127.0.0.1` only | none | You want one server you can curl, or have a non-Claude client that speaks Streamable HTTP. |
 | **C. Team, VM-hosted** | Many humans | Streamable HTTP, behind TLS | per-user bearer tokens | You want N team members to share one server with one set of SentinelOne credentials, with per-user audit and revocation. |
 
 ## A. Single user, local (stdio)
 
-`curl -fsSL https://raw.githubusercontent.com/pmoses-s1/s1-aws-quick-skills/main/sentinelone-mcp/deploy/install.sh | bash`
+`curl -fsSL https://raw.githubusercontent.com/pmoses-s1/claude-skills/main/sentinelone-mcp/deploy/install.sh | bash`
 
 That runs `install.sh --user`, which:
 1. Confirms Node 18+ is present (errors out with install hints if not).
@@ -28,13 +28,12 @@ Then edit `~/.config/sentinelone/credentials.json` with your real values:
   "S1_HEC_INGEST_URL":    "https://ingest.us1.sentinelone.net",
   "SDL_XDR_URL":          "https://xdr.us1.sentinelone.net",
   "SDL_LOG_READ_KEY":     "...",
-  "SDL_LOG_WRITE_KEY":    "...",
   "SDL_CONFIG_READ_KEY":  "...",
   "SDL_CONFIG_WRITE_KEY": "..."
 }
 ```
 
-Add the server in Amazon Quick: **Settings > Capabilities > MCP > "+ Add MCP / Skill"**. For the VM topology, use the Streamable HTTP transport:
+Add the server in Amazon Quick: **Settings > Capabilities > MCP > "+ Add MCP / Skill"**. For Claude Desktop users, edit `~/Library/Application Support/Claude/claude_desktop_config.json` (Mac) or `%APPDATA%\Claude\claude_desktop_config.json` (Windows):
 
 ```json
 {
@@ -53,7 +52,7 @@ Or, equivalently, by package name without the install:
   "mcpServers": {
     "sentinelone-mcp": {
       "command": "npx",
-      "args": ["-y", "@pmoses-s1/sentinelone-mcp@1.1.0"]
+      "args": ["-y", "@pmoses-s1/sentinelone-mcp@1.2.1"]
     }
   }
 }
@@ -81,7 +80,7 @@ curl -s -X POST http://127.0.0.1:8765/mcp \
 # -> 26
 ```
 
-In Amazon Quick or any MCP client that supports remote HTTP servers, add it:
+In Claude Amazon Quick or any MCP client that supports remote HTTP servers, add it:
 
 ```json
 {
@@ -107,7 +106,7 @@ This is the topology to use when more than one person should have access to the 
 - One systemd service running the MCP on `127.0.0.1:8765` with auth enforced.
 - Caddy in front terminating TLS and forwarding to the backend.
 
-Team members connect from their MCP clients with their own bearer token. Audit log identifies them by name. Revocation is one file edit + `systemctl reload`.
+Team members connect from their Claude clients with their own bearer token. Audit log identifies them by name. Revocation is one file edit + `systemctl reload`.
 
 ### Step-by-step
 
@@ -127,7 +126,7 @@ Team members connect from their MCP clients with their own bearer token. Audit l
 
 3. **Run the installer in server mode:**
    ```bash
-   curl -fsSL https://raw.githubusercontent.com/pmoses-s1/s1-aws-quick-skills/main/sentinelone-mcp/deploy/install.sh | sudo bash -s -- --server
+   curl -fsSL https://raw.githubusercontent.com/pmoses-s1/claude-skills/main/sentinelone-mcp/deploy/install.sh | sudo bash -s -- --server
    ```
    It creates the `mcp` user, drops `/etc/sentinelone-mcp/credentials.json` (placeholder) and `/etc/sentinelone-mcp/bearer-tokens.json` (one freshly-generated admin token, printed once to stdout), installs the systemd unit, and starts the service.
 
@@ -163,7 +162,7 @@ Team members connect from their MCP clients with their own bearer token. Audit l
    ```
    Hand each person their token over a secure channel (1Password, Signal, etc.).
 
-7. **Connect from an MCP client.** Each user adds the server to their config with their personal token:
+7. **Connect from a Claude client.** Each user adds the server to their config with their personal token:
    ```json
    {
      "mcpServers": {
@@ -256,6 +255,96 @@ curl -s http://127.0.0.1:8765/healthz   # behind the proxy
 curl -s https://mcp.s1.internal/healthz # in front of the proxy
 ```
 
+## Connecting Claude Desktop to a remote MCP
+
+Claude Desktop's `claude_desktop_config.json` only accepts stdio-based MCP servers in current stable builds; the `type: "http"` form gets rejected with "not valid MCP server configuration" on load. To connect Claude Desktop to your VM's HTTPS endpoint, use the bridge script shipped in this repo at [`bridge/sentinelone-mcp-bridge.mjs`](./bridge/sentinelone-mcp-bridge.mjs) — a 40-line zero-dependency Node script that translates Claude Desktop's stdio into POST requests against the MCP HTTP endpoint.
+
+Each team member drops the script anywhere on their machine (typically `~/.local/bin/sentinelone-mcp-bridge.mjs`) and points Claude Desktop at it:
+
+```json
+{
+  "mcpServers": {
+    "sentinelone-mcp": {
+      "command": "node",
+      "args": ["/Users/<you>/.local/bin/sentinelone-mcp-bridge.mjs"],
+      "env": {
+        "MCP_URL":    "https://mcp.s1.internal/mcp",
+        "MCP_BEARER": "<your personal bearer token>"
+      }
+    }
+  }
+}
+```
+
+Then Cmd+Q and reopen Claude Desktop. See [`bridge/README.md`](./bridge/README.md) for install, smoke-test, and troubleshooting steps. Claude Amazon Quick users can keep using the native `type: "http"` config (it supports remote HTTP MCPs in current builds) — only Claude Desktop needs the bridge.
+
+## AWS-specific gotchas
+
+Five things that bit during real deployment to an EC2 instance. None are blockers, but knowing them up front saves hours.
+
+### EC2 public DNS is unstable without an Elastic IP
+
+Stopping and starting an instance assigns a new public IPv4 address and a new public DNS name (`ec2-<new-ip>.<region>.compute.amazonaws.com`). Every ACME-issued cert, every `claude_desktop_config.json`, and every Caddyfile that referenced the old hostname breaks. Allocate an Elastic IP in EC2 → Elastic IPs → Allocate → Associate before issuing certs. Free while attached to a running instance.
+
+The instance's `*.compute.internal` DNS name (e.g. `ip-172-31-7-227.ap-southeast-2.compute.internal`) is the VPC-internal name and is **not** reachable from outside the VPC. It can't be used for ACME validation or for clients on the public internet.
+
+### Let's Encrypt refuses `*.amazonaws.com` by policy
+
+If you try to issue a cert for the EC2 public DNS, LE returns:
+
+```
+HTTP 400 urn:ietf:params:acme:error:rejectedIdentifier
+The ACME server refuses to issue a certificate for this domain name, because it is forbidden by policy
+```
+
+Caddy auto-falls back to **ZeroSSL** (also free, also publicly trusted, no policy block on `amazonaws.com`). Use the email-shorthand form `tls <email>` and Caddy handles the fallback transparently. The right end state is a cert with `issuer=ZeroSSL ECC DV SSL CA 2` — verify with:
+
+```bash
+echo | openssl s_client -connect $HOST:8764 -servername $HOST 2>/dev/null \
+  | grep -E "^(issuer=|verify return code)"
+```
+
+For long-term peace of mind, use a real domain instead (Route 53 A record pointing at the Elastic IP) — both LE and ZeroSSL issue without restriction and the hostname survives instance replacement.
+
+### Caddyfile: don't mix `tls` shorthand with `issuer acme` block
+
+```caddyfile
+# WRONG — Caddy errors: "cannot mix issuer subdirective with other issuer-specific subdirectives"
+tls prithvi@example.com {
+    issuer acme {
+        disable_http_challenge
+    }
+}
+```
+
+The shorthand `tls <email>` implicitly configures an ACME issuer. Combining it with an explicit `issuer acme { ... }` block conflicts. Pick one form:
+
+```caddyfile
+# Form 1: shorthand (requires port 80 open for HTTP-01)
+tls prithvi@example.com
+
+# Form 2: explicit block (gives you knobs like disable_http_challenge)
+tls {
+    issuer acme {
+        email prithvi@example.com
+        disable_http_challenge
+    }
+}
+```
+
+### `tls internal` produces a Caddy CA cert, not a public one
+
+If you see ACME succeed in milliseconds rather than ~10-30 seconds, look at the cert: it was likely issued by Caddy's local CA, not by an external ACME server. The give-aways are an instant log line and `no OCSP server specified in certificate` warnings (public CAs always embed OCSP URLs). `tls internal` is fine for private-network deployments with cert distribution to clients, but doesn't help when you want public trust.
+
+### systemd hardening that breaks Node V8 JIT
+
+The hardened service file we ship omits two systemd directives that would otherwise be useful:
+
+- `MemoryDenyWriteExecute=true`
+- `LockPersonality=true`
+
+Both block the W+X memory mappings V8 needs to JIT JavaScript. Adding them causes the service to silently SIGTRAP at startup with `Result: core-dump` and ~5 MB peak memory — no useful log output. If you customize the unit, leave both off.
+
 ## Troubleshooting
 
 | Symptom | Likely cause | Fix |
@@ -270,7 +359,7 @@ curl -s https://mcp.s1.internal/healthz # in front of the proxy
 
 These are supported but not first-class:
 
-- **Docker / docker-compose.** Not shipped in this version. The single-file Node binary doesn't need it. If you want a container, the install is `FROM node:20-alpine` + `RUN npm install -g @pmoses-s1/sentinelone-mcp@1.1.0` + `CMD ["sentinelone-mcp", "--transport", "http", "--host", "0.0.0.0"]`. Mount creds at `/etc/sentinelone-mcp/credentials.json` and tokens at `/etc/sentinelone-mcp/bearer-tokens.json`.
+- **Docker / docker-compose.** Not shipped in this version. The single-file Node binary doesn't need it. If you want a container, the install is `FROM node:20-alpine` + `RUN npm install -g @pmoses-s1/sentinelone-mcp@1.2.1` + `CMD ["sentinelone-mcp", "--transport", "http", "--host", "0.0.0.0"]`. Mount creds at `/etc/sentinelone-mcp/credentials.json` and tokens at `/etc/sentinelone-mcp/bearer-tokens.json`.
 
 - **External bridge (`supergateway`, `mcp-proxy`).** Pre-1.1.0 deployments used these to wrap the stdio-only server. They still work; this server's native HTTP mode is functionally equivalent and removes the extra process. Prefer native unless you have a specific reason.
 

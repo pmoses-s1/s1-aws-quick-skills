@@ -1,6 +1,4 @@
-
-> **Amazon Quick users:** You do NOT need this bridge. Amazon Quick supports HTTP-type MCP servers natively (Settings > Capabilities > MCP, type: http). This bridge is only for Claude Desktop users who need to connect to a team-shared VM.
-
+# Claude Desktop bridge for the remote MCP
 
 A small stdio↔HTTPS proxy so Claude Desktop can talk to a team-shared `sentinelone-mcp` server running on a VM. Each team member runs the bridge on their own machine; the bridge sends bearer-authed POSTs to the shared MCP endpoint.
 
@@ -8,7 +6,7 @@ A small stdio↔HTTPS proxy so Claude Desktop can talk to a team-shared `sentine
 
 Claude Desktop's `claude_desktop_config.json` only accepts stdio-based MCP servers in current stable builds. Adding a remote server via `type: "http"` gets rejected with "not valid MCP server configuration". The bridge wraps the remote HTTPS endpoint as a local stdio process, which Claude Desktop accepts.
 
-Amazon Quick and Claude Code don't need this - both support `type: "http"` natively.
+Claude Amazon Quick and Claude Code don't need this — both support `type: "http"` natively.
 
 ## What's in the box
 

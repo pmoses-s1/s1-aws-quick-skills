@@ -141,7 +141,6 @@ if [[ ! -f "$CRED_PATH" ]]; then
   "S1_HEC_INGEST_URL":    "https://ingest.us1.sentinelone.net",
   "SDL_XDR_URL":          "https://xdr.us1.sentinelone.net",
   "SDL_LOG_READ_KEY":     "",
-  "SDL_LOG_WRITE_KEY":    "",
   "SDL_CONFIG_READ_KEY":  "",
   "SDL_CONFIG_WRITE_KEY": ""
 }
@@ -237,8 +236,8 @@ if [[ "$MODE" == "user" ]]; then
    2. Try the server:
         sentinelone-mcp --version
         sentinelone-mcp --help
-   3. Wire it into Amazon Quick via Settings → Capabilities → MCP → "+ Add MCP"
-      (no HTTP needed for single-user local). See the repo README.md for the
+   3. Wire it into Claude Cowork / Claude Desktop / Claude Code via stdio
+      (no HTTP needed for single-user local). See deploy/README.md for the
       exact config block.
 
 EOF

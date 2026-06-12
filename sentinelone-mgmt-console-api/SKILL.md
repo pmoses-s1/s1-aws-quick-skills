@@ -8,11 +8,11 @@ description: Use whenever the user wants to query, update, create, or act on a S
 
 Wraps the SentinelOne Management Console API (Swagger 2.0, spec version 2.1, 781 operations) with a pre-built Python client, a compact endpoint index, and per-tag reference files.
 
-> **Sandbox proxy blocked?** If calls to `*.sentinelone.net` fail with a connection or proxy error inside the Amazon Quick sandbox, use the `sentinelone-mcp` server instead. It runs locally on your machine via `node` and bypasses the sandbox proxy entirely. Setup: add it in Amazon Quick → Settings → Capabilities → MCP (see `sentinelone-mcp/README.md`). The MCP server exposes all the tools in this skill — `s1_api_get`, `s1_api_post`, `purple_ai_alert_summary`, `uam_list_alerts`, `uam_get_alert`, `uam_add_note`, `uam_set_status` — with schemas validated against the live API. For natural-language Purple AI queries and AI investigations, use the Purple MCP (`mcp__purple-mcp__purple_ai`) directly — those operations require a browser-session teamToken that API tokens never obtain.
+> **Sandbox proxy blocked?** If calls to `*.sentinelone.net` fail with a connection or proxy error inside the Amazon Quick sandbox, use the `sentinelone-mcp` server instead. It runs locally on your machine via `node` and bypasses the sandbox proxy entirely. Setup: add it in Amazon Quick Settings > Capabilities > MCP. The MCP server exposes all the tools in this skill — `s1_api_get`, `s1_api_post`, `purple_ai_alert_summary`, `uam_list_alerts`, `uam_get_alert`, `uam_add_note`, `uam_set_status` — with schemas validated against the live API. For natural-language Purple AI queries and AI investigations, use the Purple MCP (`mcp__purple-mcp__purple_ai`) directly — those operations require a browser-session teamToken that API tokens never obtain.
 
-## Setup - configure credentials first
+## Setup — configure credentials first
 
-Credentials are provided via MCP server environment variables (Settings > Capabilities > MCP). For fallback, drop a `credentials.json` in the repo folder:
+Drop a `credentials.json` file directly into your repo folder with the required fields:
 
 ```json
 {
@@ -24,7 +24,7 @@ Credentials are provided via MCP server environment variables (Settings > Capabi
 
 `S1_CONSOLE_URL` is the tenant console URL (no trailing slash, no `/web/api/v2.1`). `S1_CONSOLE_API_TOKEN` is an API User token from Settings → Users → Service Users in the S1 console. `S1_HEC_INGEST_URL` is the SentinelOne HEC ingest host (region-specific, look up yours in [SentinelOne Endpoint URLs by Region](https://community.sentinelone.com/s/article/000004961)) and is only required if you push alerts/indicators into UAM via the UAM Alert Interface.
 
-The MCP server auto-discovers credentials from environment variables or by walking up the directory tree for `credentials.json`. To trigger a manual refresh of the local credential cache:
+The MCP server auto-discovers credentials from environment variables or by walking up the directory tree for `credentials.json`. To trigger a manual refresh:
 
 ```bash
 bash scripts/bootstrap_creds.sh   # idempotent, returns the destination path
@@ -32,7 +32,7 @@ bash scripts/bootstrap_creds.sh   # idempotent, returns the destination path
 
 Environment variables (`S1_CONSOLE_URL`, `S1_CONSOLE_API_TOKEN`, `S1_HEC_INGEST_URL`, `S1_VERIFY_TLS`) still override the credentials file if set.
 
-Before running anything, confirm credentials resolved. If not, stop and ask the user to configure them in the MCP server environment variables (Settings > Capabilities > MCP) or drop a `credentials.json` into the repo folder.
+Before running anything, confirm credentials resolved. If not, stop and ask the user to drop `credentials.json` into their repo folder.
 
 ## Workflow
 
@@ -292,8 +292,8 @@ It enumerates every GET plus a curated allow-list of read-only query POSTs, reco
 
 ## Files in this skill
 
-- `credentials.json` (in repo root or parent dir) - credentials (set `S1_CONSOLE_URL` and `S1_CONSOLE_API_TOKEN`; see Setup above). Auto-discovered by walking up the directory tree.
-- `scripts/bootstrap_creds.sh` - idempotent helper that copies workspace creds into the sandbox-local path. Safe to re-run manually.
+- `<project folder>/credentials.json` — credentials (set `S1_CONSOLE_URL` and `S1_CONSOLE_API_TOKEN`; see Setup above). Auto-discovered by the MCP server's credential resolver.
+- `scripts/bootstrap_creds.sh` — idempotent helper that copies workspace creds into the sandbox-local path. Wired to the MCP server's credential resolver; safe to re-run manually.
 - `scripts/s1_client.py` — importable Python client. Handles auth, pooled HTTP connections, retries on 429/5xx, pagination, parallel fan-out via `get_many()`, and optional short-TTL response caching for rarely-changing reads (accounts, sites, groups, system/info, etc.).
 - `scripts/call_endpoint.py` — CLI for one-shot calls: `python scripts/call_endpoint.py GET /web/api/v2.1/agents --param limit=5`.
 - `scripts/search_endpoints.py` — ranked keyword search over the endpoint index, with synonym expansion and an `--only-works` filter that restricts to endpoints confirmed reachable on this tenant.

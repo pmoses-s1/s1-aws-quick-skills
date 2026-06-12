@@ -9,7 +9,7 @@ Examples
     python scripts/sdl_cli.py list-files
 
     # Read one
-    python scripts/sdl_cli.py get-file /logParsers/uploadLogs
+    python scripts/sdl_cli.py get-file /logParsers/MyParser
 
     # Power query
     python scripts/sdl_cli.py power-query "dataset='accesslog' | group count() by status" --start 1h
@@ -25,15 +25,6 @@ Examples
 
     # Numeric
     python scripts/sdl_cli.py numeric-query --function count --filter "status >= 500" --start 1h --buckets 30
-
-    # Upload plain text
-    python scripts/sdl_cli.py upload-logs --text "hello world" --parser demo-parser --server-host dev
-
-    # Upload a file
-    python scripts/sdl_cli.py upload-logs --file /path/to/data.log --parser demo-parser
-
-    # addEvents single structured event (ts is injected if missing)
-    python scripts/sdl_cli.py add-events --message "something happened" --attr app=hq --attr latencyMs=42
 
     # Put file (create/update)
     # Parsers: use /logParsers/<name> — /parsers/ is API-accepted but invisible in the UI.
@@ -170,48 +161,6 @@ def cmd_timeseries_query(c, args):
     _print(c.timeseries_query(queries=[q]))
 
 
-def cmd_upload_logs(c, args):
-    if args.file and args.text is not None:
-        raise SystemExit("upload-logs: pass --file OR --text, not both")
-    if args.file:
-        content = Path(args.file).read_bytes()
-    elif args.text is not None:
-        content = args.text
-    else:
-        raise SystemExit("upload-logs: pass --file or --text")
-    extra = _parse_kv(args.server_field)
-    # cast values back to strings for header use
-    extra = {k: str(v) for k, v in extra.items()}
-    _print(
-        c.upload_logs(
-            content,
-            parser=args.parser,
-            server_host=args.server_host,
-            logfile=args.logfile,
-            nonce=args.nonce,
-            extra_server_fields=extra,
-            content_type=args.content_type,
-        )
-    )
-
-
-def cmd_add_events(c, args):
-    attrs = _parse_kv(args.attr)
-    if args.message is not None:
-        attrs["message"] = args.message
-    ev = {"ts": args.ts or c.now_ns(), "attrs": attrs}
-    if args.sev is not None:
-        ev["sev"] = args.sev
-    if args.thread is not None:
-        ev["thread"] = args.thread
-    session = args.session or c.new_session_id()
-    session_info = None
-    if args.session_info:
-        session_info = _parse_kv(args.session_info)
-        session_info = {k: str(v) for k, v in session_info.items()}
-    _print(c.add_events(events=[ev], session=session, session_info=session_info))
-
-
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="sdl_cli", description="SentinelOne SDL API CLI")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -285,29 +234,6 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--create-summaries", type=lambda s: s.lower() == "true", default=None)
     sp.add_argument("--only-use-summaries", type=lambda s: s.lower() == "true", default=None)
     sp.set_defaults(func=cmd_timeseries_query)
-
-    # upload-logs
-    sp = sub.add_parser("upload-logs", help="Plain-text/raw file upload (requires Log Write key)")
-    sp.add_argument("--text", default=None)
-    sp.add_argument("--file", default=None)
-    sp.add_argument("--parser", default=None)
-    sp.add_argument("--server-host", default=None)
-    sp.add_argument("--logfile", default=None)
-    sp.add_argument("--nonce", default=None)
-    sp.add_argument("--server-field", action="append", default=[], help="Extra server-* header as key=value")
-    sp.add_argument("--content-type", default="text/plain")
-    sp.set_defaults(func=cmd_upload_logs)
-
-    # add-events
-    sp = sub.add_parser("add-events", help="Send one structured event with a fresh session")
-    sp.add_argument("--message", default=None)
-    sp.add_argument("--attr", action="append", default=[], help="Event attribute key=value (repeatable)")
-    sp.add_argument("--ts", default=None, help="Nanoseconds since epoch (string). Defaults to now.")
-    sp.add_argument("--sev", type=int, default=None, help="0..6, default 3")
-    sp.add_argument("--thread", default=None)
-    sp.add_argument("--session", default=None, help="Stable session ID; a UUID is generated if omitted")
-    sp.add_argument("--session-info", action="append", default=[], help="sessionInfo key=value (repeatable)")
-    sp.set_defaults(func=cmd_add_events)
 
     return p
 

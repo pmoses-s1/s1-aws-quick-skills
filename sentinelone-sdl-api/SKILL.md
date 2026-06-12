@@ -1,16 +1,16 @@
 ---
 name: sentinelone-sdl-api
 author: Prithvi Moses <prithvi.moses@sentinelone.com>
-description: Use whenever the user wants to read or write data through the SentinelOne Singularity Data Lake (SDL) API — ingest events, run queries, or manage configuration files (parsers, dashboards, alerts, lookups, datatables) on a Scalyr/SDL/XDR tenant. Trigger on "SDL", "SDL API", "Singularity Data Lake", "Scalyr", "DataSet", "xdr.us1.sentinelone.net" or any "*.sentinelone.net/api/*" URL, and on the method names "uploadLogs", "addEvents", "query", "powerQuery", "facetQuery", "timeseriesQuery", "numericQuery", "getFile", "putFile", "listFiles". Also trigger on tasks like "ingest a log file into SDL", "send a JSON event to the data lake", "run a powerQuery", "list configuration files", "edit my parser via API", "deploy a dashboard JSON", "compute the rate of failures over time", or anything involving Log Read / Log Write / Configuration Read / Configuration Write SDL keys, Bearer-token auth, or the S1-Scope header. Wraps every SDL method with a Python client and CLI.
+description: Use whenever the user wants to read data and manage configuration through the SentinelOne Singularity Data Lake (SDL) API — run queries or manage configuration files (parsers, dashboards, alerts, lookups, datatables) on a Scalyr/SDL/XDR tenant. Trigger on "SDL", "SDL API", "Singularity Data Lake", "Scalyr", "DataSet", "xdr.us1.sentinelone.net" or any "*.sentinelone.net/api/*" URL, and on the method names "query", "powerQuery", "facetQuery", "timeseriesQuery", "numericQuery", "getFile", "putFile", "listFiles". Also trigger on tasks like "run a powerQuery", "list configuration files", "edit my parser via API", "deploy a dashboard JSON", "compute the rate of failures over time", or anything involving Log Read / Configuration Read / Configuration Write SDL keys, Bearer-token auth, or the S1-Scope header. Wraps every SDL method with a Python client and CLI.
 ---
 
 # SentinelOne SDL API
 
-Wraps the Singularity Data Lake API (10 methods across log ingestion, query, and configuration files) with a pre-built Python client, a CLI runner, and a per-method reference.
+Wraps the Singularity Data Lake API (query and configuration-file methods) with a pre-built Python client, a CLI runner, and a per-method reference.
 
-The SDL API is distinct from the Management Console API. It speaks JSON over `Bearer` tokens (not `ApiToken`) and is the canonical path for ingesting custom telemetry and editing parsers/dashboards/alerts/lookups directly.
+The SDL API is distinct from the Management Console API. It speaks JSON over `Bearer` tokens (not `ApiToken`) and is the canonical path for querying the data lake and editing parsers/dashboards/alerts/lookups directly. Raw-log ingestion is via HEC (see the `sentinelone-mgmt-console-api` skill).
 
-> **Sandbox proxy blocked?** If calls to `*.sentinelone.net` (SDL host or console host) fail with a connection or proxy error inside the Amazon Quick sandbox, use the `sentinelone-mcp` server instead. It runs locally via `node` and bypasses the sandbox proxy entirely. Setup: add it in Amazon Quick → Settings → Capabilities → MCP (see `sentinelone-mcp/README.md`). The MCP server exposes `sdl_list_files`, `sdl_get_file`, `sdl_put_file`, `sdl_delete_file`, and `sdl_upload_logs` — running directly from your machine against the SDL API.
+> **Sandbox proxy blocked?** If calls to `*.sentinelone.net` (SDL host or console host) fail with a connection or proxy error inside the Amazon Quick sandbox, use the `sentinelone-mcp` server instead. It runs locally via `node` and bypasses the sandbox proxy entirely. Setup: add it in Amazon Quick Settings > Capabilities > MCP. The MCP server exposes `sdl_list_files`, `sdl_get_file`, `sdl_put_file`, and `sdl_delete_file` — running directly from your machine against the SDL API. Raw-log ingestion uses HEC (see `sentinelone-mgmt-console-api`), not this skill.
 
 ## IMPORTANT: query methods are deprecated — and LRQ is NOT available here
 
@@ -25,23 +25,21 @@ The query methods on this skill (`query`, `powerQuery`, `facetQuery`, `timeserie
 | PowerQuery programmatically (any range) | **`sentinelone-mgmt-console-api`** → LRQ at `POST /sdl/v2/api/queries` on console host |
 | Dashboard panel queries | SDL console renders them in-browser — no API needed |
 | Quick one-off stats under 24h (deprecated) | V1 methods on this skill still work until 2027-02-15 |
-| `upload_logs` / `add_events` (ingestion) | **This skill** — LRQ is query-only and on the console host |
 | `get_file` / `put_file` / `list_files` (parsers, dashboards, lookups) | **This skill** |
 
 ## Setup — configure credentials first
 
-Credentials are provided via MCP server environment variables (Settings > Capabilities > MCP). For fallback, drop a `credentials.json` in the repo folder:
+Drop a `credentials.json` file directly into your repo folder with the keys you need:
 
 ```json
 {
   "SDL_XDR_URL":          "https://xdr.us1.sentinelone.net",
   "S1_CONSOLE_API_TOKEN": "eyJ...your-token...",
-  "SDL_LOG_WRITE_KEY":    "0Z1Fy0...",
   "SDL_CONFIG_WRITE_KEY": "0mXas6PD1Zvg..."
 }
 ```
 
-The MCP server auto-discovers credentials from environment variables or by walking up the directory tree for `credentials.json`. To trigger a manual refresh of the local credential cache:
+The MCP server auto-discovers credentials from environment variables or by walking up the directory tree for `credentials.json`. To trigger a manual refresh:
 
 ```bash
 bash scripts/bootstrap_creds.sh   # idempotent, returns the destination path
@@ -51,22 +49,21 @@ Each key type unlocks a specific set of methods (matrix below). The client picks
 
 | Key | Methods unlocked |
 |-----|-----------------|
-| Log Write Access        | `uploadLogs`, `addEvents` |
 | Log Read Access         | `query`, `numericQuery`, `facetQuery`, `timeseriesQuery`, `powerQuery` |
 | Configuration Read      | All Log Read methods, plus `getFile`, `listFiles` |
 | Configuration Write     | All of the above, plus `putFile` |
-| `S1_CONSOLE_API_TOKEN` (mgmt-console JWT)  | All query + config methods (NOT `uploadLogs`); set `SDL_S1_SCOPE` if multi-site/account. Same JWT used by `S1Client`. (Legacy alias `SDL_CONSOLE_API_TOKEN` still recognised.) |
+| `S1_CONSOLE_API_TOKEN` (mgmt-console JWT)  | All query + config methods; set `SDL_S1_SCOPE` if multi-site/account. Same JWT used by `S1Client`. (Legacy alias `SDL_CONSOLE_API_TOKEN` still recognised.) |
 
-Environment variables (`SDL_XDR_URL`, `S1_CONSOLE_API_TOKEN`, `SDL_LOG_WRITE_KEY`, etc.) still override the credentials file if set.
+Environment variables (`SDL_XDR_URL`, `S1_CONSOLE_API_TOKEN`, etc.) still override the credentials file if set.
 
-Before running anything, confirm `SDL_XDR_URL` is set and at least one key for the operation chain is present. If not, stop and ask the user to configure them in the MCP server environment variables (Settings > Capabilities > MCP) or drop a `credentials.json` into the repo folder.
+Before running anything, confirm `SDL_XDR_URL` is set and at least one key for the operation chain is present. If not, stop and ask the user to drop `credentials.json` into their repo folder.
 
 ## Workflow
 
 When the user asks for something involving the SDL API:
 
-1. **Pick the method.** Check `references/methods.md` for the right call. For **ingestion** (`upload_logs`, `add_events`) and **configuration files** (`get_file`, `put_file`, `list_files`), this skill is the right tool. For **queries**, use the V1 methods on this skill only for quick one-off stats under 24h; for anything programmatic or multi-day, switch to the **`sentinelone-mgmt-console-api`** skill and the LRQ API — LRQ is NOT available at the SDL API host (`xdr.us1.sentinelone.net`).
-2. **Use the client.** `from sdl_client import SDLClient` then call the named method (`upload_logs`, `add_events`, `query`, `power_query`, `facet_query`, `timeseries_query`, `numeric_query`, `list_files`, `get_file`, `put_file`). The client picks the correct key, handles JSON encoding, retries 429/5xx/`error/server/backoff`, and returns parsed JSON. Note: `query` and `power_query` hit the deprecated V1 endpoints — they work until 2027-02-15 for quick lookups but should not be used for production query pipelines.
+1. **Pick the method.** Check `references/methods.md` for the right call. For **configuration files** (`get_file`, `put_file`, `list_files`), this skill is the right tool. Raw-log ingestion is via HEC (see `sentinelone-mgmt-console-api`). For **queries**, use the V1 methods on this skill only for quick one-off stats under 24h; for anything programmatic or multi-day, switch to the **`sentinelone-mgmt-console-api`** skill and the LRQ API — LRQ is NOT available at the SDL API host (`xdr.us1.sentinelone.net`).
+2. **Use the client.** `from sdl_client import SDLClient` then call the named method (`query`, `power_query`, `facet_query`, `timeseries_query`, `numeric_query`, `list_files`, `get_file`, `put_file`). The client picks the correct key, handles JSON encoding, retries 429/5xx/`error/server/backoff`, and returns parsed JSON. Note: `query` and `power_query` hit the deprecated V1 endpoints — they work until 2027-02-15 for quick lookups but should not be used for production query pipelines.
 3. **For ad-hoc shots, use the CLI.** `python scripts/sdl_cli.py <method> [args]`. The CLI mirrors the client.
 4. **Summarize for the user.** Don't dump raw JSON unless asked. For query results, prefer a concise table or CSV; for ingestion, confirm `bytesCharged` and the session ID; for config files, show path + version + (truncated) content.
 
@@ -111,7 +108,6 @@ c = SDLClient()
 c.keys["log_read_key"] = ""
 c.keys["config_read_key"] = ""
 c.keys["config_write_key"] = ""
-c.keys["log_write_key"] = ""
 
 schemas = {}
 for source in all_sources_from_step1_enumeration:
@@ -129,14 +125,13 @@ json.dump(schemas, open(out, "w"), indent=2)
 
 **Direct MCP tools bypass sandbox proxy entirely.**
 
-The Amazon Quick sandboxed shell may block outbound HTTPS to `xdr.us1.sentinelone.net`. Use the
+The Amazon Quick sandboxed shell blocks all outbound HTTPS to `xdr.us1.sentinelone.net`. Use the
 sentinelone-mcp MCP tools instead, which run locally and bypass the proxy:
 
 | Operation | sentinelone-mcp tool |
 |---|---|
 | PowerQuery | `mcp__sentinelone-mcp__powerquery_run` or `mcp__sentinelone-mcp__powerquery_schema_discover` |
 | `put_file` / `get_file` / `list_files` | `mcp__sentinelone-mcp__sdl_put_file`, `mcp__sentinelone-mcp__sdl_get_file`, `mcp__sentinelone-mcp__sdl_list_files` |
-| Upload logs | `mcp__sentinelone-mcp__sdl_upload_logs` |
 
 All of these tools run on your local machine and make direct HTTPS calls to `xdr.us1.sentinelone.net`
 without sandbox proxy interference. No fallback or workaround needed.
@@ -145,11 +140,11 @@ without sandbox proxy interference. No fallback or workaround needed.
 # Example: use sdl_get_file MCP tool directly instead
 import sys, subprocess, json
 result = subprocess.run(["mdfind", "-name", "sdl_client.py"], capture_output=True, text=True)
-sdk_dir = [p for p in result.stdout.strip().split("\n") if "s1-aws-quick-skills" in p][0].rsplit("/", 1)[0]
+sdk_dir = [p for p in result.stdout.strip().split("\n") if "claude-skills" in p][0].rsplit("/", 1)[0]
 sys.path.insert(0, sdk_dir)
 from sdl_client import SDLClient
 c = SDLClient()
-c.keys["log_read_key"] = c.keys["config_read_key"] = c.keys["config_write_key"] = c.keys["log_write_key"] = ""
+c.keys["log_read_key"] = c.keys["config_read_key"] = c.keys["config_write_key"] = ""
 # SDLClient.query(...) / put_file(...) / get_file(...) here
 ```
 
@@ -172,13 +167,12 @@ Prefer numeric OCSF for filters; the string `severity_` is case-mixed
 
 ## Files in this skill
 
-- `credentials.json` (in repo root or parent dir) - credentials (set `SDL_XDR_URL` and the keys you need; see Setup above). Auto-discovered by walking up the directory tree.
-- `scripts/bootstrap_creds.sh` - idempotent helper that copies workspace creds into the sandbox-local path. Safe to re-run manually.
+- `<project folder>/credentials.json` — credentials (set `SDL_XDR_URL` and the keys you need; see Setup above). Auto-discovered by the MCP server's credential resolver.
+- `scripts/bootstrap_creds.sh` — idempotent helper that copies workspace creds into the sandbox-local path. Wired to the MCP server's credential resolver; safe to re-run manually.
 - `scripts/sdl_client.py` — importable Python client (`SDLClient`). Picks the right key per method, retries with exponential backoff, exposes ergonomic method names.
 - `scripts/sdl_cli.py` — CLI runner: `python scripts/sdl_cli.py power-query "dataset='accesslog' | group count() by status" --start 1h`.
-- `references/methods.md` — single per-method reference (parameters, defaults, response shape, gotchas) for all 10 SDL endpoints.
+- `references/methods.md` — single per-method reference (parameters, defaults, response shape, gotchas) for the SDL query and configuration-file endpoints.
 - `references/auth_and_limits.md` — key matrix, console-token rules, S1-Scope, leaky-bucket CPU rate-limit model, retry guidance, daily caps.
-- `references/integration_patterns.md` — addEvents session/sessionInfo discipline, batching, structured vs unstructured events, fault-tolerance loop pseudo-code.
 
 ## Using the client
 
@@ -208,21 +202,6 @@ ts = c.timeseries_query(queries=[
     {"filter": "serverHost contains 'frontend'", "function": "count", "startTime": "1h", "buckets": 60}
 ])
 
-# ---- Log write ----
-# Plain text upload (uploadLogs requires a Log Write key, NOT a console token)
-c.upload_logs("Log line 1\nLog line 2", parser="my-parser", server_host="dev-box")
-
-# Structured ingest with addEvents — session ID must persist for the life of the upload process
-sess = c.new_session_id()
-c.add_events(
-    session=sess,
-    session_info={"serverHost": "demo-host", "serverType": "frontend"},
-    events=[
-        {"ts": c.now_ns(), "sev": 3,
-         "attrs": {"message": "user login", "user": "alice", "latencyMs": 42}},
-    ],
-)
-
 # ---- Configuration files ----
 # Parsers live under /logParsers/<name> — the SDL API also accepts /parsers/<name>
 # but the Log Parsers UI only reads /logParsers/, so PUTs at /parsers/ are invisible
@@ -237,15 +216,13 @@ c.put_file("/logParsers/Stale", delete=True)
 
 Every request sets `Authorization: Bearer <token>`. The client picks the key per method using these chains (first non-empty wins):
 
-- `log_write` (addEvents):   `log_write_key` → `console_api_token`
-- `log_write_strict` (uploadLogs): `log_write_key` only — uploadLogs rejects console tokens
 - `log_read`:    `log_read_key` → `config_read_key` → `config_write_key` → `console_api_token`
 - `config_read`: `config_read_key` → `config_write_key` → `console_api_token`
 - `config_write` (putFile): `config_write_key` → `console_api_token`
 
 If a `console_api_token` is used and the user has access to multiple sites or accounts, set `s1_scope` (e.g. `"<account_id>:<site_id>"` for site scope, `"<account_id>"` for account scope). The client adds `S1-Scope` automatically when both conditions hold.
 
-A 401 with `error/client/noPermission` means the token is wrong or expired. SDL keys do not expire by default, but console user tokens do — for ingestion, prefer a Log Write Access key.
+A 401 with `error/client/noPermission` means the token is wrong or expired. SDL keys do not expire by default, but console user tokens do.
 
 ## Rate limits and retries
 
@@ -253,8 +230,6 @@ The client retries automatically on HTTP 429, 5xx, and SDL `status: error/server
 
 - **Query budget is a leaky bucket of CPU seconds.** When `cpuUsageSecondsToWait` shows in a 429, back off by that many seconds. `priority: "low"` (the default) gets a more generous bucket than `"high"`. See `references/auth_and_limits.md` for the bucket model.
 - **From 19 March 2026, all query methods cap at 8 queries/sec per tenant.**
-- **`uploadLogs` is hard-capped at 10 GB/day** and 6 MB per request. For higher volume use `add_events`.
-- **`addEvents` sessions:** keep ≤ 2.5 MB/s per session, 10 MB/s max, ≤ 50K sessions per 5-min window. Only one in-flight request per session — if you parallelise, use multiple sessions, not one shared session.
 - **Concurrency cap:** 12 simultaneous requests per API key (non-query). For loops, throttle in code.
 
 For long-running ingest, use the binary truncated exponential backoff loop in `references/integration_patterns.md` rather than the client's default retries — it is designed to stop on `discardBuffer` and to slowly relax wait times after success.
@@ -272,8 +247,6 @@ There is no undo. Configuration files are versioned but accidental deletes still
 ## Common high-value workflows
 
 - **Hunt with PowerQuery.** Use the **`sentinelone-mgmt-console-api`** skill, which holds the LRQ runner at `POST /sdl/v2/api/queries` on your console host. LRQ is NOT reachable via the SDL API (`xdr.us1.sentinelone.net`). This skill's `c.power_query()` hits the deprecated V1 endpoint and should only be used for a quick ad-hoc one-off before 2027-02-15.
-- **Webhook → SDL.** Stateless ingest from a Lambda/CF Worker: `c.upload_logs(json.dumps(event), parser="my-webhook-parser", nonce=event_id)`. Reuse the same nonce on retries to dedupe.
-- **Bulk structured ingest.** Generate one session ID at process start, batch events to ~5 MB, call `add_events(session=sess, events=batch)` in a loop. Honour the backoff pattern.
 - **Promote a parser/dashboard.** `get_file("/logParsers/Foo")` from staging → `put_file("/logParsers/Foo", content=..., expected_version=N)` on production. The `expected_version` guard catches concurrent edits. (Parser path is `/logParsers/` — `/parsers/` is API-accepted but not UI-visible.)
 - **Audit configuration drift.** `list_files()` then `get_file()` for each path; diff against a checked-in copy.
 - **Quick stats panel.** `facet_query(field="srcIp", filter="status >= 500", start_time="1h")` returns the top offenders fast.
@@ -289,7 +262,6 @@ tools instead. They run on your local machine and bypass the sandbox proxy entir
 - `mcp__sentinelone-mcp__sdl_get_file` for reading SDL configuration files
 - `mcp__sentinelone-mcp__sdl_put_file` for deploying parsers, dashboards, alerts, lookups
 - `mcp__sentinelone-mcp__sdl_list_files` for listing SDL configuration inventory
-- `mcp__sentinelone-mcp__sdl_upload_logs` for uploading raw log events
 - `mcp__sentinelone-mcp__powerquery_run` for executing PowerQueries against the Singularity Data Lake
 
 No Desktop Commander workaround is necessary when you use these tools.

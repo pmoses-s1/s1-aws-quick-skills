@@ -426,11 +426,7 @@
 | GET | `/web/api/v2.1/mobile-integration/provisioning/tenant` | Mobile Integration | 404 | HTTP 404: Tenant not found |
 | GET | `/web/api/v2.1/ranger/enablement` | Network Discovery Self Enablement | 404 | HTTP 404: {"errors":[{"code":4040010,"detail":"","title":"Requested resource was not found"}]}  |
 | GET | `/web/api/v2.1/ranger/enablement/defaults` | Network Discovery Self Enablement | 404 | HTTP 404: {"errors":[{"code":4040010,"detail":"","title":"Requested resource was not found"}]}  |
-| GET | `/web/api/v2.1/remote-ops/forensics/collection-profiles` | RemoteOps Forensics | 429 | HTTP 429: <html>
- <head><title>429 Too Many Requests</title></head>
- <body>
- <center><h1>429 Too Many Requests</h1></center>
- <hr><center>ng |
+| GET | `/web/api/v2.1/remote-ops/forensics/collection-profiles` | RemoteOps Forensics | 429 | HTTP 429: <html> <head><title>429 Too Many Requests</title></head> <body> <center><h1>429 Too Many Requests</h1></center> <hr><center>ng |
 | GET | `/web/api/v2.1/ranger-ad/assessment-status` | ISPM | 500 | HTTP 500: {"timestamp":"2026-04-28T04:06:32.776+00:00","status":500,"error":"Internal Server Error","path":"/web/api/v2.1/ranger-ad/assessme |
 | GET | `/web/api/v2.1/remote-ops/data-exporter/destination-profiles` | Remote Ops MMS | 500 | HTTP 500: Server could not process the request. |
 | GET | `/web/api/v2.1/remote-ops/data-exporter/results` | Remote Ops MMS | 500 | HTTP 500: Server could not process the request. |

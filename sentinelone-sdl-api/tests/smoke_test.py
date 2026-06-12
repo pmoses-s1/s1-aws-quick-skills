@@ -72,7 +72,6 @@ def main():
     c = SDLClient()
     print(f"Base URL: {c.base_url}")
     print(f"Keys configured: "
-          f"log_write={'Y' if c.keys['log_write_key'] else 'n'} "
           f"log_read={'Y' if c.keys['log_read_key'] else 'n'} "
           f"config_read={'Y' if c.keys['config_read_key'] else 'n'} "
           f"config_write={'Y' if c.keys['config_write_key'] else 'n'}")
@@ -82,27 +81,6 @@ def main():
     test_parser = "sdl_skill_smoke_parser"
     test_logfile = "sdl-skill-smoke"
     test_path = f"/lookups/sdl_skill_smoke_{int(time.time())}"
-    session_id = c.new_session_id()
-
-    # --------------------------- LOG WRITE -----------------------------------
-    _run("uploadLogs", lambda: c.upload_logs(
-        content=f"sdl-skill-smoke uploadLogs test {uuid.uuid4()}\n"
-                f"sdl-skill-smoke uploadLogs second line {uuid.uuid4()}",
-        parser=test_parser,
-        server_host="sdl-skill-smoke-host",
-        logfile=test_logfile,
-        nonce=test_nonce,
-    ))
-
-    _run("addEvents", lambda: c.add_events(
-        session=session_id,
-        session_info={"serverHost": "sdl-skill-smoke-host", "parser": test_parser, "logfile": test_logfile},
-        events=[
-            {"ts": c.now_ns(), "sev": 3,
-             "attrs": {"message": "sdl-skill-smoke addEvents test",
-                       "tag": "sdl-skill-smoke", "latencyMs": 42, "app": "smoke"}},
-        ],
-    ))
 
     # --------------------------- LOG READ ------------------------------------
     _run("query (minimal)", lambda: c.query(filter="", start_time="5m", max_count=5))

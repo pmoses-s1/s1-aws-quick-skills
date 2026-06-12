@@ -410,7 +410,15 @@ Must have `"parent_action": <loop_export_id>`. `"connected_to": []`.
 ```
 `mime_type`: `"text/plain"` or `"text/html"`. HTML is more common in active flows (analyst-
 friendly tables, embedded SentinelOne logo banner).
-For attachments: `"attachments": [{"name": "file.zip", "content": "{{Function.COMPRESS(...)}}"}]`.
+For attachments, use the keys **`file_name`** and **`file_content`** (NOT `name`/`content`):
+`"attachments": [{"file_name": "report.csv", "file_content": "{{local_var.csvB64}}"}]`.
+`file_content` is base64-encoded — `{{Function.BASE64_ENCODE(local_var.csv)}}` for plain text, or
+`{{Function.COMPRESS(...)}}` for a zip.
+
+> **Confirmed 2026-06-11 (live import):** using `name`/`content` fails import with
+> `422 "Field required"` on `attachments.0.file_name` and `attachments.0.file_content`.
+> The send_email attachment object keys are `file_name` and `file_content`.
+
 99% of active flows send to a single recipient. `to` and friends are arrays of strings; each
 element can be a literal or a `{{...}}` expression.
 

@@ -1,8 +1,7 @@
 # SDL API method reference
 
 Every method is a JSON `POST` to `{base_url}/api/<method>` unless noted. All
-requests send `Authorization: Bearer <token>` and `Content-Type: application/json`
-(except `uploadLogs`, which sends the raw body). The `status` property of every
+requests send `Authorization: Bearer <token>` and `Content-Type: application/json`. The `status` property of every
 response uses a slash-delimited hierarchy; `success` prefix = OK,
 `error/client` prefix = caller bug, `error/server` prefix = retry.
 
@@ -11,53 +10,9 @@ and CLI subcommands (in `scripts/sdl_cli.py`).
 
 ---
 
-## Log ingestion
+## Ingestion (moved to HEC)
 
-### `uploadLogs` — `c.upload_logs(content, ...)` — CLI `upload-logs`
-
-Simple unstructured/raw ingest. The body is the raw log text (not JSON). Newline-
-separated records become separate events. **Max 6 MB per request, 10 GB/day per tenant.**
-Requires a real Log Write Access key — Console user API tokens are NOT accepted.
-
-Header-level fields:
-- `parser`: optional; SDL creates a parser config file of this name if it doesn't exist. Default `uploadLogs`.
-- `server-host`: optional; fills the `serverHost` event attribute. Use `server-host`, not `host` (which is a standard HTTP header).
-- `server-<field>`: optional; any extra `server-*` header becomes a field on the event (e.g. `server-region`).
-- `logfile`: optional; defaults to `uploadLogs`.
-- `Nonce`: optional dedupe key. Same nonce => request ignored on retry (response status `success` with `"ignoring request, due to duplicate nonce"`).
-
-Response: `{"status":"success"}` or `{"status":"error/client/badParam","message":"..."}`.
-
-Typical use cases: Lambda, webhooks, whole files (txt/json/tar.gz), any
-low-volume stateless producer.
-
----
-
-### `addEvents` — `c.add_events(events, session=None, ...)` — CLI `add-events`
-
-Structured (or unstructured) batch ingest. Scales to 100s of TB/day. Event
-objects require `ts` (string nanoseconds since epoch), `attrs` (object);
-optional `sev` (0..6, default 3), `thread` (id), `log` (id referring to
-entries in the request-level `logs` array).
-
-Critical session rules (see `integration_patterns.md` for code):
-- Generate **one** session UUID at process start; reuse for the life of the process.
-- **One in-flight request per session.** If you parallelise across workers, use one session per worker.
-- Keep throughput ~2.5 MB/s per session (10 MB/s is the hard cap).
-- Account cap: **50K sessions per 5-minute window.**
-- Events in the same session with identical timestamps are ordered by receive order. Multi-line parsers require all lines in the same session.
-
-Request fields: `session` (required), `sessionInfo` (object, must be consistent across all requests with the same session), `threads` (named thread IDs), `events`, `logs` (constant metadata to reduce redundancy across events — useful for Kubernetes/Docker context).
-
-Attribute charging: bytes in `message` + 1 byte per field for unstructured events; per-field and per-value charging for structured events. Omit `message` and you lose full-text search on that event.
-
-Response: `{"bytesCharged":N,"status":"success"}`. Confirm in UI and search `tag='ingestionFailure'` for issues.
-
-Error status codes:
-- **400** — malformed JSON or request > 6 MB (truncated).
-- **401** — token invalid (`error/client/noPermission`).
-- **429 / 200 + error/server/backoff** — separate events into more sessions, or slow down. Client retries with exponential backoff.
-- **5xx** — retry.
+SDL raw-log ingestion (`uploadLogs`, `addEvents`) has been removed from this skill. Ingest raw logs/events via the **HEC ingest** path (HTTP Event Collector on the ingest host, with a named `parser`), which feeds Event Search, PowerQuery, and detection rules. UAM alert/indicator creation is separate and lives in `sentinelone-mgmt-console-api` (`uam_*`, posted to `/v1/*` on the same ingest host but a distinct API). This skill now covers queries and configuration files only.
 
 ---
 

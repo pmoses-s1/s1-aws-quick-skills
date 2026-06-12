@@ -9,7 +9,7 @@ description: >
 
 This skill helps you design, author, and deploy Singularity Data Lake (SDL) dashboards — from a single panel to a full multi-tab SOC dashboard. Dashboards live as configuration files in SDL and are authored as JSON (or a relaxed JavaScript-literal superset of it). You deploy them via the `sentinelone-sdl-api` skill's `put_file` method.
 
-> **Sandbox proxy blocked?** If `put_file` or SDL API calls to `*.sentinelone.net` fail with a connection or proxy error inside the Amazon Quick sandbox, use the `sentinelone-mcp` server instead. It runs locally via `node` and bypasses the sandbox proxy entirely. Setup: add it in Amazon Quick → Settings → Capabilities → MCP (see `sentinelone-mcp/README.md`). Use the `sdl_put_file` tool to deploy dashboards and `sdl_get_file` / `sdl_list_files` to inspect what's already deployed.
+> **Sandbox proxy blocked?** If `put_file` or SDL API calls to `*.sentinelone.net` fail with a connection or proxy error inside the Amazon Quick sandbox, use the `sentinelone-mcp` server instead. It runs locally via `node` and bypasses the sandbox proxy entirely. Setup: add it in Amazon Quick Settings > Capabilities > MCP. Use the `sdl_put_file` tool to deploy dashboards and `sdl_get_file` / `sdl_list_files` to inspect what's already deployed.
 
 ## Workflow
 
@@ -54,7 +54,6 @@ c = SDLClient()
 c.keys["log_read_key"]    = ""
 c.keys["config_read_key"] = ""
 c.keys["config_write_key"] = ""
-c.keys["log_write_key"]   = ""
 
 res = c.query(filter=f"dataSource.name=='{source}'", max_count=50, start_time="7d")
 attrs = sorted({k for m in res["matches"] for k in (m.get("attributes") or {}).keys()})
