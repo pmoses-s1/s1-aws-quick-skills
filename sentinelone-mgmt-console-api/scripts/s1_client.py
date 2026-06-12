@@ -118,7 +118,15 @@ _MNT_SKIP = frozenset({".claude", ".auto-memory", ".remote-plugins", "outputs", 
 #
 # Mirrors normalizeS1ApiGetParams in sentinelone-mcp/tools/mgmt-console.js;
 # keep the two in sync. Regression test: tests/test_islegacy_guard.py.
-_CLOUD_DETECTION_RULES_RE = re.compile(r"/cloud-detection/rules(?:/[^/?]*)?/?$")
+#
+# Match `/cloud-detection/rules` when it's immediately followed by `/`, `?`,
+# or end-of-string. This covers the listing endpoint, the trailing-slash form,
+# the single-rule /{id} variant, AND callers that inline query params in the
+# path (e.g. ".../rules?limit=200"). The previous end-anchored pattern silently
+# skipped the query-suffix form and let scheduled rules drop out. Requiring one
+# of `/ ? <end>` after `rules` keeps adjacent names like `/rules-export` or
+# `/ruleset` from matching.
+_CLOUD_DETECTION_RULES_RE = re.compile(r"/cloud-detection/rules(?:[/?]|$)")
 
 
 def _maybe_inject_islegacy(
@@ -129,8 +137,9 @@ def _maybe_inject_islegacy(
     """Return a params dict with isLegacy=false injected when appropriate.
 
     Triggers on GET to /cloud-detection/rules, /cloud-detection/rules/,
-    or /cloud-detection/rules/{id}. Always returns a fresh dict so the
-    caller's input is not mutated.
+    /cloud-detection/rules/{id}, and any of these with an inline query
+    suffix (e.g. /cloud-detection/rules?limit=200). Always returns a fresh
+    dict so the caller's input is not mutated.
     """
     out = dict(params or {})
     if method.upper() != "GET":

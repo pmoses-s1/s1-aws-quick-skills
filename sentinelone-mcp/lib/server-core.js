@@ -32,7 +32,7 @@ function loadSocContext() {
   const candidates = [
     process.env.S1_CLAUDE_MD_PATH,
     process.cwd() ? join(process.cwd(), 'CLAUDE.md') : null,
-    join(__dir, '..', '..', 'CLAUDE.md'),    // s1-aws-quick-skills/CLAUDE.md (git clone)
+    join(__dir, '..', '..', 'CLAUDE.md'),    // claude-skills/CLAUDE.md (git clone)
     join(__dir, '..', '..', '..', 'CLAUDE.md'),
     join(__dir, '..', 'CLAUDE.md'),
   ].filter(Boolean);
@@ -41,7 +41,7 @@ function loadSocContext() {
       try { return readFileSync(p, 'utf-8'); } catch { /* skip */ }
     }
   }
-  return '# SentinelOne SOC Analyst Context\n\n_CLAUDE.md not found. Place it in your Amazon Quick allowed folder, or set S1_CLAUDE_MD_PATH to an absolute path._';
+  return '# SentinelOne SOC Analyst Context\n\n_CLAUDE.md not found. Place it in the skills folder added to Amazon Quick, or set S1_CLAUDE_MD_PATH to an absolute path._';
 }
 
 const SOC_CONTEXT = loadSocContext();
@@ -94,7 +94,7 @@ const PROMPTS = [
 
 export const SERVER_INFO = {
   name: 'sentinelone-mcp-server',
-  version: '1.1.0',
+  version: '1.2.1',
 };
 
 export const PROTOCOL_VERSION = '2024-11-05';
@@ -156,7 +156,6 @@ export async function dispatch(method, params, id) {
             configured: hasSdlCreds(),
             xdrUrl: c.SDL_XDR_URL || 'NOT SET',
             configWriteKey: !!c.SDL_CONFIG_WRITE_KEY,
-            logWriteKey: !!c.SDL_LOG_WRITE_KEY,
           },
           uamIngestApi: {
             configured: hasHecCreds(),
@@ -204,9 +203,9 @@ export async function dispatch(method, params, id) {
                 text: `Begin a new SOC analyst session. Follow this initialization sequence:
 
 1. Call \`powerquery_enumerate_sources\` to discover active SDL data sources (MANDATORY, never assume sources from prior sessions).
-2. In parallel, call \`uam_list_alerts\` with filter="status=OPEN" to pull active alerts.
+2. In parallel, call \`uam_list_alerts\` with status="NEW" to pull untriaged active alerts. Valid status values are "NEW", "IN_PROGRESS", or "RESOLVED" (there is no "OPEN" status; it silently returns 0 results). Omit the status argument to pull the most recent alerts across all states.
 3. For each discovered data source not already in the schema registry, plan schema discovery via \`powerquery_schema_discover\`.
-4. Report: (a) active data sources list, (b) open alert count and top 5 by severity, (c) which sources need schema discovery.
+4. Report: (a) active data sources list, (b) untriaged (NEW) alert count and top 5 by severity, (c) which sources need schema discovery.
 
 Apply the SOC analyst context from the soc_analyst prompt throughout.`,
               },

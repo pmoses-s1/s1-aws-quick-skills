@@ -10,7 +10,7 @@
  * Hyperautomation, and UAM Ingest; plus 2 resources and 2 prompts.
  *
  * Quick start:
- *   stdio (default, used by Amazon Quick / Claude Desktop):
+ *   stdio (default, used by Amazon Quick / Claude Code):
  *     node index.js
  *
  *   Streamable HTTP, bound to localhost, no auth (single-user local):
@@ -111,7 +111,6 @@ ENVIRONMENT
                               uam_post_indicators, uam_post_alert.
   SDL_XDR_URL                 SDL tenant URL.
   SDL_LOG_READ_KEY            SDL Log Read key.
-  SDL_LOG_WRITE_KEY           SDL Log Write key. Required for sdl_upload_logs.
   SDL_CONFIG_READ_KEY         SDL Config Read key.
   SDL_CONFIG_WRITE_KEY        SDL Config Write key. Required for sdl_put_file.
   S1_CREDS_FILE               Explicit path to a credentials.json file.

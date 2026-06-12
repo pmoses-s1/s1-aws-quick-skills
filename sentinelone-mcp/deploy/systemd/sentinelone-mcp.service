@@ -29,6 +29,9 @@ Restart=on-failure
 RestartSec=5
 
 # Hardening
+# NOTE: MemoryDenyWriteExecute=true and LockPersonality=true are incompatible
+# with Node.js V8 JIT (W+X mappings). Including them causes a silent SIGTRAP
+# at startup with no useful log output. Leave them off for Node services.
 NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
@@ -39,8 +42,6 @@ ProtectControlGroups=true
 RestrictNamespaces=true
 RestrictRealtime=true
 RestrictSUIDSGID=true
-LockPersonality=true
-MemoryDenyWriteExecute=true
 SystemCallArchitectures=native
 ReadWritePaths=
 

@@ -230,7 +230,8 @@ rule_body = {
             "query": (
                 "dataSource.name='MySource' event.type=*\n"
                 "| filter severity_id >= 4\n"
-                "| group count=count(), last_seen=newest(timestamp) by src_endpoint.ip\n"
+                "| group count=count(), last_seen=newest(timestamp) by endpoint.name, src_endpoint.ip\n"
+                "| columns endpoint.name, src_ip = src_endpoint.ip, count, last_seen\n"
                 "| sort -count\n"
                 "| limit 100"
             ),
@@ -238,6 +239,9 @@ rule_body = {
             "lookbackWindowMinutes": 60,
             "threshold": {"value": 0, "operator": "Greater"},
         },
+        # Asset/entity binding: reference the output column(s) that hold the entity.
+        # Without entityMappings the scheduled-rule alert shows "Unknown Device".
+        "entityMappings": [{"columnName": "endpoint.name"}, {"columnName": "src_ip"}],
     },
     "filter": {
         "accountIds": ["<account_id>"],   # or siteIds; account scope covers all sites
@@ -259,6 +263,7 @@ Key points:
 - `queryType: "scheduled"` + `queryLang: "2.0"` is the supported PowerQuery detection path. `queryType: "events"` rejects pipe syntax; `queryLang: "2.1"` is not in the enum.
 - The query string lives in `data.scheduledParams.query`. The `data.s1ql` field is for `queryType: "events"` (S1QL log-search) rules.
 - Do NOT include `disableAgentMitigation`, `treatAsThreat: "Malicious"`, or `activeResponse` on scheduled rules. `disableAgentMitigation` returns HTTP 400 `Unknown field`. Mitigation actions are not supported on scheduled rules; the verdict surfaces via severity.
+- **Asset/entity binding:** a scheduled-rule alert shows "Unknown Device" unless you set `data.entityMappings: [{"columnName": "<output column>"}]` (the UI's "Entity column mapping") referencing column(s) the query projects, e.g. `| columns endpoint.name = device.hostname, src_ip = src_endpoint.ip`. Projecting the columns alone is not enough; the `entityMappings` declaration is what binds the asset. Confirmed live. Other full-rule options (UI ↔ API field) are catalogued in `sentinelone-powerquery/references/detection-rules.md`.
 - New rules land in `Draft` status regardless of the requested `status` on POST. Call `PUT /cloud-detection/rules/enable` after creation; the rule transitions to `Activating` then `Active` within the hour.
 - **If the POST returns a feature-not-enabled / unlicensed response, stop and tell the user to enable Scheduled Detections on the tenant.** Do not silently downgrade to S1QL or retry as `queryType: "events"`.
 - To list scheduled rules: `GET /web/api/v2.1/cloud-detection/rules?accountIds=...&isLegacy=false`. The `isLegacy=false` is required or the list call returns zero results for scheduled rules.

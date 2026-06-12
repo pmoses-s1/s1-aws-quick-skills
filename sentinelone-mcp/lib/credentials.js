@@ -4,7 +4,7 @@
  * Resolution order (highest wins):
  *   1. Environment variables
  *   2. S1_CREDS_FILE (explicit absolute path; recommended for VM deployments)
- *   3. COWORK_WORKSPACE/credentials.json (legacy Cowork support)
+ *   3. COWORK_WORKSPACE/credentials.json (legacy workspace support)
  *   4. QUICKWORK_WORKSPACE/credentials.json (Amazon Quick workspace)
  *   5. Walk-up from cwd looking for credentials.json
  *   6. ~/mnt/<any-folder>/credentials.json (workspace mounts)

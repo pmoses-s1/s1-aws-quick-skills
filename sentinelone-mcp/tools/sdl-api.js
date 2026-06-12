@@ -6,10 +6,11 @@
  *   sdl_get_file       Get file content and version (parsers, dashboards, alerts, lookups)
  *   sdl_put_file       Deploy or update a config file (with optimistic locking)
  *   sdl_delete_file    Delete a config file
- *   sdl_upload_logs    Upload raw log events to SDL (requires Log Write key)
+ *   hec_ingest         Ingest raw logs/events into SDL via the HEC endpoint (replaces uploadLogs)
  */
 
-import { listFiles, getFile, putFile, deleteFile, uploadLogs } from '../lib/sdl.js';
+import { listFiles, getFile, putFile, deleteFile } from '../lib/sdl.js';
+import { hecIngest } from '../lib/hec.js';
 
 export const tools = [
   // ─── sdl_list_files ───────────────────────────────────────────────────────
@@ -99,34 +100,25 @@ export const tools = [
     },
   },
 
-  // ─── sdl_upload_logs ──────────────────────────────────────────────────────
+  // ─── hec_ingest ─────────────────────────────────────────────────────────────
   {
-    name: 'sdl_upload_logs',
-    description: `Upload raw log events to SDL via the uploadLogs endpoint (plain text, newline-separated). Used for ingesting custom telemetry, testing parsers, and one-off log imports. Requires an SDL Log Write Access key (SDL_LOG_WRITE_KEY) — the console JWT is NOT accepted for this endpoint. Max 6 MB per request, 10 GB per day. Pair with a parser at logfile= to apply field extraction.`,
+    name: 'hec_ingest',
+    description: `Ingest raw logs/events into the SentinelOne AI SIEM Singularity Data Lake via the HEC (HTTP Event Collector) endpoint. Applies a named parser via ?sourcetype and lands the data in the Data Lake for Event Search, PowerQuery, and detection rules. Replaces the removed sdl_upload_logs. NOT UAM ingest (the uam_* tools post OCSF indicators/alerts to /v1/* on the same host but a separate API). Per S-26.1 HEC docs: POST {S1_HEC_INGEST_URL}/services/collector/raw, Authorization: Bearer <S1_CONSOLE_API_TOKEN>, query params become fields, gzip recommended, 10 MB uncompressed per request.`,
     inputSchema: {
       type: 'object',
       properties: {
-        logContent: {
-          type: 'string',
-          description: 'Raw log text, newline-separated. Each line becomes a separate SDL event.',
-        },
-        parser: {
-          type: 'string',
-          description: 'Parser name to apply to the uploaded events (matches the "parser" header). Omit to use the default parser.',
-        },
-        logfile: {
-          type: 'string',
-          description: 'Logical logfile identifier sent as the "logfile" header, e.g. "myapp/access.log". Used by parsers to route events.',
-        },
-        serverHost: {
-          type: 'string',
-          description: 'Source host name, sent as the "server-host" header.',
-        },
+        logContent: { type: 'string', description: 'Raw log text. For the /raw endpoint, newline-separated lines become separate events.' },
+        parser: { type: 'string', description: 'Parser name, sent as the ?sourcetype= query param. Omit to skip parsing (structured JSON on /event auto-parses).' },
+        fields: { type: 'object', description: 'Extra key-value pairs sent as query params; each key becomes a field in the UI, e.g. {"server":"dev","region":"ap1"}. Avoid HEC-reserved names (event, time, host, source, sourcetype, index, fields) as keys; use the parser arg to set sourcetype.' },
+        scope: { type: 'string', description: 'REQUIRED. accountId or "accountId:siteId" sent as the S1-Scope header; HEC rejects requests without it (400 "Missing S1-Scope header").' },
+        endpoint: { type: 'string', enum: ['raw','event'], description: "HEC endpoint: 'raw' (default, raw text) or 'event' (structured JSON)." },
+        compress: { type: 'boolean', description: 'gzip the body (Content-Encoding: gzip). Default true.' },
+        isParsed: { type: 'boolean', description: 'For /event with structured JSON: set ?isParsed=true so SDL indexes the JSON fields directly, with no SDL parser. Confirmed working.' },
       },
-      required: ['logContent'],
+      required: ['logContent', 'scope'],
     },
-    async handler({ logContent, parser, logfile, serverHost }) {
-      const result = await uploadLogs(logContent, { parser, logfile, serverHost });
+    async handler({ logContent, parser, fields, scope, endpoint, compress, isParsed }) {
+      const result = await hecIngest(logContent, { parser, fields, scope, endpoint, compress, isParsed });
       return JSON.stringify(result, null, 2);
     },
   },

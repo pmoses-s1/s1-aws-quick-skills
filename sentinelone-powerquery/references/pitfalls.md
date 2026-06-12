@@ -476,6 +476,21 @@ A `lookup` before a `group` is evaluated per-event. Once per-group is always che
 | lookup os_version from machineinfo by endpoint.name
 ```
 
+### `lookup` table name and `by` direction
+
+Two ways this silently returns nothing:
+
+- The table name in `from <table>` is the **literal filename including any extension**. If the file is `/datatables/sid_username.csv`, use `from sid_username.csv`, not `from sid_username`.
+- The `by` clause is `lookupColumn = eventField` (lookup-table key column on the left, event field/expression on the right): `by sid = winEventLog.data.event.eventData.subjectUserSid`.
+
+### `dataset 'config://datatables/...'` returns 0 rows
+
+Reading a CSV as a pipeline source via `dataset 'config://datatables/<name>'` returned **0 rows** on a tested tenant, both with and without the `.csv` suffix, even though the table existed and `| lookup` against it worked. Prefer `| lookup` to read or enrich a data table. If you specifically need `dataset`, verify it returns rows before building on it.
+
+### Automatic lookup deploy fails: "Output value fields are not unique"
+
+When editing `/automaticLookups`, every output value field name must be unique across ALL `lookupSpecs`. Two specs writing the same output field (even keyed on different event fields) returns HTTP 400 `Output value fields are not unique`. Rename the outputs or consolidate to one spec. See `references/automatic-lookups.md`.
+
 ## LRQ / engine functions
 
 ### `powerquery_run` time parameters — silent fallback to full-history scan

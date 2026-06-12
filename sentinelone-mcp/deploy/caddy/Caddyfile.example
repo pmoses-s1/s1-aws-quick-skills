@@ -9,6 +9,17 @@
 #        tls /path/to/cert.pem /path/to/key.pem
 #                          Bring your own cert from an internal PKI.
 #
+# AWS users: Let's Encrypt refuses to issue for *.amazonaws.com hostnames by
+# policy. When you use the `tls <email>` shorthand, Caddy automatically falls
+# back to ZeroSSL (also free, also publicly trusted, no policy block). The
+# end-state cert should have `issuer=ZeroSSL ECC DV SSL CA 2`. Port 80 must
+# be open in the SG for HTTP-01 to complete.
+#
+# DO NOT mix `tls <email>` with an `issuer acme { ... }` block — Caddy errors
+# with "cannot mix issuer subdirective with other issuer-specific subdirectives".
+# Pick one form: the email shorthand on its own line, OR a full `tls { ... }`
+# block with the email moved inside the `issuer acme` stanza. Not both.
+#
 # Why Caddy and not nginx? Caddy auto-renews certs, has zero config for SSE
 # streaming (flush_interval handled), and is one binary with no system Python
 # or Lua dependency. Equally valid alternative: nginx with the snippet at the

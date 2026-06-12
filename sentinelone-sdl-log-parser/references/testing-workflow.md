@@ -5,7 +5,7 @@ There is **no dedicated `testParser` REST endpoint** on the SDL tenant. The in-c
 ## Prerequisites
 
 - `sentinelone-sdl-api` skill is installed.
-- `credentials.json` is in the repo folder (or parent directory) and contains at minimum `SDL_CONFIG_WRITE_KEY`, `SDL_LOG_WRITE_KEY`, and `SDL_LOG_READ_KEY`, or `S1_CONSOLE_API_TOKEN` (the same management-console JWT; legacy `SDL_CONSOLE_API_TOKEN` is also accepted). The MCP server auto-discovers it by walking up the directory tree.
+- `credentials.json` is in the repo folder (or parent directory) and contains at minimum `SDL_CONFIG_WRITE_KEY` and `SDL_LOG_READ_KEY` plus a HEC ingest token, or `S1_CONSOLE_API_TOKEN` (the same management-console JWT; legacy `SDL_CONSOLE_API_TOKEN` is also accepted). The MCP server auto-discovers it by walking up the directory tree.
 
 - You have a draft parser JSON and a sample log file.
 
@@ -21,7 +21,7 @@ from sdl_client import SDLClient
 
 c = SDLClient()
 
-PARSER_NAME = "quick_test_fortigate_cef"    # quick_test_ prefix so cleanup is a one-liner
+PARSER_NAME = "claude_test_fortigate_cef"    # claude_test_ prefix so cleanup is a one-liner
 parser_body = pathlib.Path("draft_parser.json").read_text()
 sample      = pathlib.Path("sample.log").read_text()
 
@@ -44,12 +44,12 @@ c.put_file(f"/logParsers/{PARSER_NAME}", **put_kwargs)
 #    every other thing flowing through the tenant.
 host_tag = f"parser-test-{uuid.uuid4().hex[:8]}"
 nonce    = str(uuid.uuid4())
-c.upload_logs(
-    sample,
+# HEC ingest applies the named parser before the data lands (replaces the removed uploadLogs).
+hec_ingest(
+    content=sample,
     parser=PARSER_NAME,
     server_host=host_tag,
     logfile="parser_validation.log",
-    nonce=nonce,
 )
 
 # --- 3. Query back -------------------------------------------------------
@@ -65,7 +65,7 @@ print(json.dumps(res, indent=2))
 ## What success looks like
 
 - `put_file` → `{"status": "success", ...}`.
-- `upload_logs` → `{"status": "success", ...}` (a `bytesCharged` number appearing is normal).
+- HEC ingest → `{"status": "success", ...}` (a `bytesCharged` number appearing is normal).
 - `power_query` returns at least one row per line in the sample, and every expected field is present (not null) for at least the lines where it should be.
 
 A duplicate-`Nonce` response (`status: "success", message: "ignoring request, due to duplicate nonce..."`) means the ingest was deduped — advance to a fresh nonce on iteration.
@@ -75,7 +75,7 @@ A duplicate-`Nonce` response (`status: "success", message: "ignoring request, du
 | Symptom | Likely cause |
 |---|---|
 | `put_file` → `error/client/badParam` | JSON syntax error. Run the body through a JSON5-tolerant validator; watch for unmatched braces or trailing commas inside format strings. |
-| `upload_logs` → `error/client/badParam` with "unknown parser" | Wrong `parser:` header name, or putFile hadn't replicated yet (retry after a few seconds). |
+| HEC ingest → `error/client/badParam` with "unknown parser" | Wrong `parser:` header name, or putFile hadn't replicated yet (retry after a few seconds). |
 | `power_query` returns rows but expected fields are null | Line format didn't match. Check: regex escaping (`\\d` not `\d`), delimiter mismatches, `halt: true` on an earlier format eating the line, `message`-as-field-name mistake. |
 | `power_query` returns zero rows | `host_tag` isn't set (upload header `server-host` missing) or too short a `start_time` window. Widen to 30m. |
 | Field X populated sometimes, null others | The format works for some variants and not others. Add a fragment format for the other shape, or widen the regex. |
@@ -105,7 +105,7 @@ c.put_file("/logParsers/FortiGate_CEF", content=content)
 c.put_file(f"/logParsers/{PARSER_NAME}", delete=True)
 ```
 
-Ask the user before promoting a `quick_test_` parser to a canonical name — it's their tenant.
+Ask the user before promoting a `claude_test_` parser to a canonical name — it's their tenant.
 
 ## Synthesizing samples when the catalog parser ships without a `samples/` dir
 

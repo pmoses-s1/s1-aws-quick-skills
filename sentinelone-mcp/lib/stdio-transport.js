@@ -2,8 +2,8 @@
  * stdio transport: reads JSON-RPC messages from stdin (one per line),
  * dispatches via the provided dispatcher, writes responses to stdout.
  *
- * This is the default transport and the one used by Amazon Quick,
- * Claude Desktop, and any other MCP client launched via the
+ * This is the default transport and the one used by Claude Desktop,
+ * Amazon Quick, Claude Code, and any other client launched via the
  * `npx` / `node index.js` invocation pattern.
  */
 

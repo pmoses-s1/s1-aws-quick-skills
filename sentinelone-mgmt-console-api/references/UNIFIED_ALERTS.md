@@ -267,3 +267,20 @@ Path("uam_schema.graphql").write_text(raw["_raw"])
 ```
 
 The SDL is ~225 KB and self-describing — if a field shape ever changes, grep the latest dump before guessing.
+
+---
+
+## Asset / entity binding on detection-rule alerts
+
+Findings from a live events-vs-scheduled reproduction (2026-06).
+
+- Scheduled (PowerQuery) custom rules populate the Target Asset ONLY when `data.entityMappings: [{"columnName": "<output col>"}]` is configured (UI: "Entity column mapping") referencing column(s) the query projects. Without it the alert is "Unknown Device" (`agentUuid: null`). Projecting the column is necessary but not sufficient; the `entityMappings` declaration is what binds it. Confirmed live.
+- Events-type rules bind the entity from the matched event. The entity TYPE is driven by the event's OCSF `class_uid`: authentication/identity classes (e.g. `3002`) bind an **Identity** (user); endpoint classes (e.g. `1008`) bind a **Device**, reconciled via `device.agent.uuid` against agent inventory. The class is the switch, not the presence of agent fields (a real `device.agent.uuid` on an auth-class event still bound an Identity).
+- **UAM ingest** (`uam_ingest_alert`) builds the asset from the event's `device` object with `agentUuid: null` and `storylineId: null`, so neither agent reconciliation nor a storyline is needed. UAM ingest is distinct from HEC ingest though it shares the ingest host URL.
+- `storylineId` is NOT required for asset binding (a device-bound alert had `storylineId: null`).
+
+## Ingestion paths (HEC vs UAM)
+
+Two distinct ingest APIs share the ingest host URL but are not connected:
+- **HEC ingest** (HTTP Event Collector): raw logs/events + a named `parser`; feeds Event Search, PowerQuery, and detection rules. This is the log-ingestion path (replaces the removed SDL `uploadLogs`).
+- **UAM ingest** (`uam_post_indicators` / `uam_ingest_alert`, `/v1/*`): creates UAM alerts/indicators directly and builds the alert asset from the event `device` object. Site routing via `scope = accountId:siteId`.

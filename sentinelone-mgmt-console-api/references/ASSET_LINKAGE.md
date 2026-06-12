@@ -130,3 +130,18 @@ To sweep many alerts, `list_alerts` and `paginate_alerts` still default
 to `_ALERT_CORE_FIELDS` (cheap). Pass
 `fields=ua._ALERT_DETAIL_FIELDS` when you actually need the asset join
 on every edge.
+
+---
+
+## Detection-rule alert assets vs UAM-ingested alert assets
+
+- UAM-ingested alerts (`uam_ingest_alert`) synthesize the asset from `device.hostname`; `agentUuid` is always null on this path.
+- Scheduled (PowerQuery) rule alerts bind the asset only when `data.entityMappings` references the output column(s) (UI "Entity column mapping"); without it the alert is "Unknown Device". Events-type rule alerts bind a device or an identity automatically per OCSF `class_uid` (`1008` -> Device via `device.agent.uuid`; `3002` -> Identity).
+- UAM ingest is NOT HEC ingest; they share the ingest host URL but are separate APIs.
+
+## Operational notes (detection rules)
+
+- Events rules evaluate the real-time stream only (events arriving after activation); they DO read HEC-ingested data going forward. A "0 alerts" events rule may simply have had no post-activation events.
+- Scheduled-rule edit to first-alert latency is ~28-30 min; every rule edit resets `Activating`.
+- `uam_list_alerts` filters on `detectedAt` and lags the rule `generatedAlerts` counter by ~1-2 min.
+- Site-scoped scheduled rules only match events carrying `site.id`; `site.id` is a STRING in real telemetry (send as string; JSON numeric coercion loses precision on 19-digit IDs).

@@ -143,17 +143,63 @@ This uses `lookup` with a config data table (`/datatables/allowlist_hosts`). Kee
 
 ## Mapping fields to alert properties
 
-When a detection rule fires, the detection engine looks for these columns to populate the alert. Use them verbatim.
+When a detection rule fires, the detection engine looks for these columns to populate the alert row. Use them verbatim.
 
 | Alert field | Column to emit |
 |---|---|
-| Asset / endpoint | `agent.uuid`, `endpoint.name` |
 | Storyline | `src.process.storyline.id` |
 | Timestamp | `timestamp` (or a `.timestamp`-suffixed column like `last_seen.timestamp`) |
 | Evidence | `cmdline = any(src.process.cmdline)`, `path = any(tgt.file.path)`, etc. |
 | Count / severity driver | `count = count()` |
 
 Renames are fine: the engine resolves by name, so `host = any(endpoint.name)` is fine; it just helps the analyst read the row.
+
+### Target Asset / entity binding (scheduled rules need `entityMappings`)
+
+A scheduled (PowerQuery) rule **binds the Target Asset via an explicit `entityMappings` config — it is not automatic.** Out of the box a scheduled-rule alert shows "Unknown Device" (`agentUuid: null`); projecting `endpoint.name` / `agent.uuid` columns is necessary but **not sufficient on its own**. The rule must also declare which result columns are the entity, via the top-level `entityMappings` array (the **"Entity column mapping"** field in the rule UI):
+
+```json
+"entityMappings": [ { "columnName": "endpoint.name" }, { "columnName": "src_ip" } ]
+```
+
+Working recipe for a scheduled rule with a mapped asset — two parts that must agree:
+
+1. Project the entity column(s) in the query body, e.g. `| columns endpoint.name = device.hostname, src_ip = src_endpoint.ip, ...`.
+2. Set `data.entityMappings` to those exact output column names: `[{ "columnName": "endpoint.name" }, { "columnName": "src_ip" }]`.
+
+Confirmed on a live tenant: the same rule that showed "Unknown Device" with no `entityMappings` mapped the asset once `entityMappings` was configured on its `endpoint.name` / `src_ip` columns. (The earlier A/B tests showed Unknown Device only because they never set `entityMappings`.)
+
+Other paths that bind the entity:
+- **Events-type rules** (`queryType: "events"`) — entity is taken from the matched event automatically. Type follows OCSF `class_uid`: auth/identity classes (e.g. `3002`) bind an **Identity** (user); endpoint classes (e.g. `1008`) bind a **Device**, reconciled via `device.agent.uuid` against inventory.
+- **UAM ingest** (indicator/alert posted to `/v1/*`) — asset built from the event's `device` object.
+
+`storylineId` is NOT required for binding.
+
+## Scheduled detection rule — full option set (UI ↔ API)
+
+Every option on the rule's Overview page maps to a field in the `POST/PUT /cloud-detection/rules` body (`data` object unless noted). Confirmed against a live rule.
+
+| UI label | API field | Notes |
+|---|---|---|
+| Detection name | `data.name` | |
+| Description | `data.description` | |
+| Severity | `data.severity` | `Critical` / `High` / `Medium` / `Low` |
+| Scope | `filter.siteIds` / `accountIds` / `groupIds` / `tenant:true` | site / account / group / global |
+| Expiration date | `data.expirationMode` (`Permanent`/`Temporary`) + `data.expiration` | |
+| Rule type | `data.queryType` | `scheduled` for PowerQuery bodies |
+| Query language | `data.queryLang` | `2.0` for scheduled PowerQuery |
+| Query | `data.scheduledParams.query` | PowerQuery body (S1QL goes in `data.s1ql` for `events` rules) |
+| **Entity column mapping** | **`data.entityMappings: [{ "columnName": "..." }]`** | maps result columns to the alert entity/asset; without it the alert is "Unknown Device" |
+| Run every | `data.scheduledParams.runIntervalMinutes` | |
+| Lookup data from the last | `data.scheduledParams.lookbackWindowMinutes` | e.g. 360 = "6 hours" |
+| Threshold criteria | `data.scheduledParams.threshold.operator` | e.g. `Greater` |
+| Threshold | `data.scheduledParams.threshold.value` | |
+| Generate alert per row | `data.scheduledParams.alertPerRow` | bool |
+| Deduplication logic | `data.scheduledParams.disableStreaksLogic` | inverse: dedup ON ⇔ `disableStreaksLogic:false` |
+| Cool off period | `data.scheduledParams` cool-off settings | suppression window; only present in the payload when enabled (exact key not captured here because it was disabled) |
+| Hide logic | `data.hideLogic` | bool |
+| Treat as threat (Active Response) | `data.treatAsThreat` | `UNDEFINED` / `Suspicious` / `Malicious`. Scheduled rules must use `UNDEFINED` — mitigation/active-response is not supported on scheduled rules |
+| Network quarantine | `data.networkQuarantine` | bool; not supported on scheduled rules |
 
 ## Deploying a rule via the API
 

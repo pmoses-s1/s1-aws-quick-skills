@@ -107,6 +107,31 @@ Detect internal vs external: `net_rfc1918(dst.ip.address)` (IPv4 private), `net_
 
 ---
 
+## Windows Event Logs (`winEventLog.*`) and SIDs
+
+Two distinct Windows sources can be present. They are NOT interchangeable:
+
+- **`dataSource.name='Windows Event Logs'`** (plural, vendor `SentinelOne`): carries the raw Windows SID (`S-1-5-...`) and rich `winEventLog.*` fields. Use this for any SID work.
+- **`dataSource.name='Windows Event Log'`** (singular, OCSF-mapped, vendor `Microsoft`): its `account.id` is a numeric value, NOT the `S-...` SID. Do not expect raw SIDs here.
+
+Confirmed fields on the plural `Windows Event Logs` source:
+
+| Field | Example | Meaning |
+|---|---|---|
+| `winEventLog.data.event.eventData.subjectUserSid` | `S-1-5-18` | Structured subject SID. Authoritative; present where the event schema carries it. |
+| `winEventLog.data.event.eventData.subjectUserName` | `THIB-DC01$` | Structured subject account name. |
+| `winEventLog.data.event.eventData.subjectDomainName` | `LETIBE` | Structured subject domain. |
+| `winEventLog.description.securityId` | `S-1-5-18` | Parsed from the description text. Broader coverage but only the first ("Subject") Security ID. |
+| `winEventLog.description.userid` | `THIB-DC01$` | Parsed account name. |
+| `winEventLog.description.accountDomain` | `LETIBE` | Parsed domain. |
+| `winEventLog.id` / `winEventLog.data.event.system.eventID` | `4624`, `4625`, `4985` | Windows Event ID. |
+| `winEventLog.channel` | `Security` | Event channel. |
+| `endpoint.name`, `agent.uuid`, `site.name` | | Standard host/agent context. |
+
+Well-known SIDs (`S-1-5-18` SYSTEM, `S-1-5-19` LOCAL SERVICE, `S-1-5-20` NETWORK SERVICE, `S-1-0-0` NULL SID, `S-1-5-7` ANONYMOUS LOGON) are reused on every host and present as the local machine account, so they are not 1:1 with a username. Domain SIDs (`S-1-5-21-<domain>-<RID>`) map uniquely to one account. For a SID-to-username lookup, resolve well-known SIDs to canonical names and map domain SIDs to the observed user. A full enrichment build is in `references/automatic-lookups.md`.
+
+---
+
 ## Indicator (behavioral detection) fields
 
 SentinelOne's built-in behavioral indicators.

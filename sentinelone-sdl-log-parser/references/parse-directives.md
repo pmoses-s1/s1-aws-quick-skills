@@ -48,6 +48,8 @@ A `{parse=X}` directive inside a field matcher runs a secondary parser on the ca
 | `base64EncodedJson` | Base64-decode first. |
 | `dottedBase64EncodedJson` | Dotted + base64. |
 
+> **No hex / base16 decoder exists.** The directives cover base64 and URL decoding, but there is no `{parse=hex}` / `{parse=base16}`, and the PowerQuery subset available to `computeFields` has no position-aware hex-to-string function either. Hex-encoded payloads, e.g. auditd `proctitle` and NUL-separated hex command lines, cannot be decoded to ASCII inside a parser. Source the readable value from a plaintext field if one exists (auditd's `EXECVE` arg vector is plain ASCII), or decode downstream at query / Hyperautomation time. Tenant-validated 2026-06-01.
+
 ### The gron-capture idiom
 
 ```js

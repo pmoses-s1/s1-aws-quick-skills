@@ -1,6 +1,10 @@
 # MCP Tools Reference
 
+<<<<<<< HEAD
 Full reference for all tools exposed by `sentinelone-mcp` and `purple-mcp`, plus the UEBA behavioural baselining and anomaly detection pipeline. For architecture context, see [architecture.md](./architecture.md).
+=======
+Full reference for all tools exposed by `sentinelone-mcp` and `purple-mcp`, plus the UEBA behavioral baselining and anomaly detection pipeline. For architecture context see [architecture.md](./architecture.md).
+>>>>>>> df3330b (sync tech content from upstream + Amazon Quick docs)
 
 ---
 
@@ -487,4 +491,7 @@ The pipeline is source-agnostic. Any numerical or categorical field works:
 | SDL put/delete | `SDL_XDR_URL` + `SDL_CONFIG_WRITE_KEY` |
 | SDL upload_logs | `SDL_XDR_URL` + `SDL_LOG_WRITE_KEY` (console JWT rejected) |
 | Hyperautomation | `S1_CONSOLE_URL` + `S1_CONSOLE_API_TOKEN` |
+<<<<<<< HEAD
 ````
+=======
+>>>>>>> df3330b (sync tech content from upstream + Amazon Quick docs)
