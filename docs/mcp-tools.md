@@ -252,18 +252,20 @@ Delete a configuration file permanently.
 | `path` | string | Full SDL config path |
 | `expectedVersion` | number | Current version (strongly recommended) |
 
-**`sdl_upload_logs`**
+**`hec_ingest`**
 
-Ingest raw log events into SDL. Requires `SDL_LOG_WRITE_KEY` (console JWT is NOT accepted).
+Ingest raw logs/events into the SentinelOne Singularity Data Lake via the HEC (HTTP Event Collector) endpoint. Replaces the deprecated `sdl_upload_logs`. Uses `S1_CONSOLE_API_TOKEN` for auth (NOT the old SDL Log Write key). Requires `S1_HEC_INGEST_URL`.
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `logContent` | string | Raw log text, newline-separated |
-| `parser` | string | Parser name to apply |
-| `logfile` | string | Logical logfile identifier |
-| `serverHost` | string | Source hostname |
+| `logContent` | string | Raw log text, newline-separated. Each line becomes a separate SDL event. |
+| `parser` | string | Parser name (sent as ?sourcetype query param) |
+| `fields` | object | Extra key-value pairs sent as query params; each becomes a field in SDL |
+| `scope` | string | REQUIRED. accountId or "accountId:siteId" (S1-Scope header) |
+| `endpoint` | string | "raw" (default, plain text) or "event" (structured JSON) |
+| `compress` | boolean | gzip compress the payload (default true) |
 
-Max 6 MB per request, 10 GB per day.
+Max 10 MB uncompressed per request.
 
 ---
 
@@ -457,7 +459,7 @@ The pipeline is source-agnostic. Any numerical or categorical field works:
 | Agents, threats, sites, groups, policies (REST) | `s1_api_get` / `s1_api_post` |
 | Create/update/delete detection rules or exclusions | `s1_api_post` / `s1_api_put` / `s1_api_delete` |
 | Deploy parser or dashboard to SDL | `sdl_put_file` |
-| Ingest custom log events | `sdl_upload_logs` |
+| Ingest custom log events | `hec_ingest` |
 | Import Hyperautomation workflow | `ha_import_workflow` |
 | Behavioral baseline + anomaly detection | `powerquery_run` (chained via baseline_anomaly.py) |
 | Enrich IOC (IP, hash, domain, URL) | Threat-intel MCP (default: virustotal) |
@@ -470,7 +472,7 @@ The pipeline is source-agnostic. Any numerical or categorical field works:
 |---|---|---|
 | LRQ concurrent requests | 3 per user | `powerquery_run`, purple-mcp `powerquery` |
 | LRQ per-call deadline | ~60 seconds | All PowerQuery execution |
-| SDL log upload size | 6 MB per request, 10 GB/day | `sdl_upload_logs` |
+| HEC ingest size | 10 MB uncompressed per request | `hec_ingest` |
 | UAM alert list page size | 100 max | `uam_list_alerts` |
 | HA workflow list page size | 200 max | `ha_list_workflows` |
 | Console API rate limit | Varies by endpoint (typically 50-100 req/s) | All `s1_api_*` tools |
@@ -489,7 +491,7 @@ The pipeline is source-agnostic. Any numerical or categorical field works:
 | Purple AI summary | `S1_CONSOLE_URL` + `S1_CONSOLE_API_TOKEN` |
 | SDL list/get | `SDL_XDR_URL` + `SDL_CONFIG_READ_KEY` (or console JWT) |
 | SDL put/delete | `SDL_XDR_URL` + `SDL_CONFIG_WRITE_KEY` |
-| SDL upload_logs | `SDL_XDR_URL` + `SDL_LOG_WRITE_KEY` (console JWT rejected) |
+| HEC ingest (`hec_ingest`) | `S1_HEC_INGEST_URL` + `S1_CONSOLE_API_TOKEN` |
 | Hyperautomation | `S1_CONSOLE_URL` + `S1_CONSOLE_API_TOKEN` |
 <<<<<<< HEAD
 ````

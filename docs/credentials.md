@@ -25,7 +25,7 @@ All skills and MCP servers read from a single `credentials.json` file. This docu
 | `S1_CONSOLE_API_TOKEN` | Mgmt Console REST, PowerQuery LRQ, UAM GraphQL, Purple AI GraphQL, SDL config ops (Management Z SP5+) | Settings > Users > Service Users > Create Service User > copy the API token. |
 | `S1_HEC_INGEST_URL` | UAM alert/indicator ingest, SDL log ingest | Region-specific HEC host, e.g. `https://ingest.us1.sentinelone.net`. Look up yours at [SentinelOne Endpoint URLs by Region](https://community.sentinelone.com/s/article/000004961). |
 | `SDL_XDR_URL` | SDL API operations (list/get/put config files, PowerQuery via SDL client) | Your SDL tenant URL, e.g. `https://xdr.us1.sentinelone.net`. Region-specific; same reference as above. |
-| `SDL_LOG_WRITE_KEY` | `sdl_upload_logs` only | Singularity Data Lake > menu next to username > API Keys > Log Access Keys > New Key (Log Write). See [SDL API Keys](https://community.sentinelone.com/s/article/000006763). |
+| `SDL_LOG_WRITE_KEY` | `hec_ingest` only | Singularity Data Lake > menu next to username > API Keys > Log Access Keys > New Key (Log Write). See [SDL API Keys](https://community.sentinelone.com/s/article/000006763). |
 | `SDL_LOG_READ_KEY` | SDL V1 query via SDL client (fallback) | Same location, Log Read Access. |
 | `SDL_CONFIG_WRITE_KEY` | `sdl_put_file` (parser/dashboard deploy) | Singularity Data Lake > API Keys > Configuration Access Keys > New Key (Config Write). |
 | `SDL_CONFIG_READ_KEY` | `sdl_list_files`, `sdl_get_file` | Same location, Config Read Access. |

@@ -45,7 +45,7 @@ Add **Environment Variables**:
 | `S1_CONSOLE_API_TOKEN` | Your API token (Settings → Users → Service Users) | ✅ |
 | `S1_HEC_INGEST_URL` | `https://ingest.us1.sentinelone.net` | For UAM ingest only |
 | `SDL_XDR_URL` | `https://xdr.us1.sentinelone.net` | For SDL config/query ops |
-| `SDL_LOG_WRITE_KEY` | Your SDL Log Write key | For `sdl_upload_logs` only |
+| `SDL_LOG_WRITE_KEY` | Your SDL Log Write key | Legacy; HEC ingest now uses `S1_CONSOLE_API_TOKEN` |
 | `SDL_LOG_READ_KEY` | Your SDL Log Read key | For log queries via SDL key |
 | `SDL_CONFIG_WRITE_KEY` | Your SDL Config Write key | For `sdl_put_file` only |
 | `SDL_CONFIG_READ_KEY` | Your SDL Config Read key | For config reads via SDL key |
@@ -189,7 +189,7 @@ isolate endpoint <name>
 | `sdl_get_file` | Read a config file |
 | `sdl_put_file` | Deploy/update a config file |
 | `sdl_delete_file` | Delete a config file |
-| `sdl_upload_logs` | Ingest raw log events |
+| `hec_ingest` | Ingest raw logs/events into SDL via HEC (replaces uploadLogs) |
 
 ### Hyperautomation (5 tools)
 | Tool | Description |
@@ -253,8 +253,8 @@ See [`credentials.example.json`](./credentials.example.json) for the template.
 
 | Token | Where to get it | What it unlocks |
 |-------|----------------|-----------------|
-| **Console API Token** | S1 Console → Settings → Users → Service Users → Generate API Token | All 781 REST endpoints + UAM GraphQL + Purple AI + LRQ PowerQuery |
-| **SDL Log Write Key** | SDL tenant → Admin → API Keys → Log Write | `sdl_upload_logs` (console token rejected) |
+| **Console API Token** | S1 Console → Settings → Users → Service Users → Generate API Token | All 781 REST endpoints + UAM GraphQL + Purple AI + LRQ PowerQuery + HEC ingest |
+| **SDL Log Write Key** | SDL tenant → Admin → API Keys → Log Write | Legacy (deprecated); `hec_ingest` now uses the Console API Token |
 | **SDL Config Write Key** | SDL tenant → Admin → API Keys → Config Write | `sdl_put_file` (parser/dashboard deploy) |
 
 ## Prerequisites

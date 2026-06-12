@@ -30,7 +30,7 @@ Tests are executed interactively through Amazon Quick using the `sentinelone-mcp
 | SDL get file | Read existing dashboard JSON | `sdl_get_file /dashboards/EDR` | N/A (read-only) | PASSED |
 | SDL put file | Deploy test dashboard | `sdl_put_file` | Yes (deleted after) | PASSED |
 | SDL delete file | Delete test dashboard | `sdl_delete_file` | N/A | PASSED |
-| SDL upload logs | Ingest single test event | `sdl_upload_logs` | Semi (event persists) | PASSED |
+| SDL upload logs | Ingest single test event | `hec_ingest` | Semi (event persists) | PASSED |
 | UAM ingest alert (inline) | Create synthetic alert via HEC | `uam_ingest_alert` (inline=true) | Semi (alert persists) | PASSED |
 | Hyperautomation list | List workflows (1,077 total) | `ha_list_workflows` | N/A (read-only) | PASSED |
 | Hyperautomation get | Full workflow detail by ID + revisionId | `ha_get_workflow` | N/A (read-only) | PASSED |
@@ -69,7 +69,7 @@ All 26 sentinelone-mcp tools were exercised against the live tenant:
 | `sdl_get_file` | Download dashboard JSON (/dashboards/EDR) | PASSED |
 | `sdl_put_file` | Deploy test dashboard (configType=TABBED) | PASSED |
 | `sdl_delete_file` | Delete test dashboard with version lock | PASSED |
-| `sdl_upload_logs` | Ingest single test event via HEC | PASSED |
+| `hec_ingest` | Ingest single test event via HEC | PASSED |
 | `ha_list_workflows` | List all workflows (1,077 total) | PASSED |
 | `ha_get_workflow` | Fetch single workflow by workflowId + revisionId | PASSED |
 | `ha_import_workflow` | Import minimal manual-trigger workflow | PASSED (prior sessions) |

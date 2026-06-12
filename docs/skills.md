@@ -63,7 +63,7 @@ Full field reference: `sentinelone-mgmt-console-api/SKILL.md`
 
 **What it provides:**
 
-- SDL log ingest via HEC (`sdl_upload_logs`), requires `SDL_LOG_WRITE_KEY`
+- SDL log ingest via HEC (`hec_ingest`), requires `SDL_LOG_WRITE_KEY`
 - SDL config file CRUD (`sdl_list_files`, `sdl_get_file`, `sdl_put_file`, `sdl_delete_file`)
 - SDL V1 query (full-event JSON, used for schema discovery)
 
@@ -100,7 +100,7 @@ c.keys["config_read_key"] = ""
 - SDL parser JSON schema (`formats`, `patterns`, `lineGroupers`, `rewrites`, `discardAttributes`)
 - OCSF field mapping guidance by log format (CEF, syslog, JSON key=value, multi-line, CSV)
 - Timestamp normalization patterns
-- End-to-end validation: `sdl_put_file` → `sdl_upload_logs` (ingest test event) → `powerquery_run` (confirm fields appear)
+- End-to-end validation: `sdl_put_file` → `hec_ingest` (ingest test event) → `powerquery_run` (confirm fields appear)
 
 **Workflow:** Parse raw log sample → generate parser JSON → deploy to SDL → ingest test event → confirm field extraction in query results.
 

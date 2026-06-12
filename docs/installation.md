@@ -71,7 +71,7 @@ Go to **Settings → Capabilities → MCP** and click **"+ Add MCP / Skill"** fo
 | `S1_CONSOLE_API_TOKEN` | `eyJ...your-api-token...` | ✅ |
 | `S1_HEC_INGEST_URL` | `https://ingest.us1.sentinelone.net` | For UAM ingest |
 | `SDL_XDR_URL` | `https://xdr.us1.sentinelone.net` | For SDL ops |
-| `SDL_LOG_WRITE_KEY` | Your Log Write key | For `sdl_upload_logs` |
+| `SDL_LOG_WRITE_KEY` | Your Log Write key | For `hec_ingest` |
 | `SDL_LOG_READ_KEY` | Your Log Read key | For log queries |
 | `SDL_CONFIG_WRITE_KEY` | Your Config Write key | For `sdl_put_file` |
 | `SDL_CONFIG_READ_KEY` | Your Config Read key | For config reads |
@@ -191,7 +191,7 @@ Resolution order (highest priority wins):
 | `S1_CONSOLE_API_TOKEN` | `sentinelone-mgmt-console-api`, `sentinelone-powerquery`, plus SDL query and config methods (not `uploadLogs`) | Settings → Users → Service Users → Create New Service User → copy the API token. The same JWT works for the SDL API from Management version Z SP5+. See [Creating service users](https://community.sentinelone.com/s/article/000005291) and [SDL API Keys](https://community.sentinelone.com/s/article/000006763) |
 | `S1_HEC_INGEST_URL` | UAM alert/indicator ingest and log ingest via HEC | The SentinelOne HEC ingest host for your region, e.g. `https://ingest.us1.sentinelone.net`. See [Endpoint URLs by Region](https://community.sentinelone.com/s/article/000004961) |
 | `SDL_XDR_URL` | SDL configuration operations + LRQ PowerQuery | Your SDL tenant URL, e.g. `https://xdr.us1.sentinelone.net` |
-| `SDL_LOG_WRITE_KEY` | `sdl_upload_logs` | SDL tenant → Admin → API Keys → Log Write |
+| `SDL_LOG_WRITE_KEY` | `hec_ingest` | SDL tenant → Admin → API Keys → Log Write |
 | `SDL_LOG_READ_KEY` | Log queries via SDL key | SDL tenant → Admin → API Keys → Log Read |
 | `SDL_CONFIG_WRITE_KEY` | `sdl_put_file` (parser/dashboard deploy) | SDL tenant → Admin → API Keys → Config Write |
 | `SDL_CONFIG_READ_KEY` | Config file reads via SDL key | SDL tenant → Admin → API Keys → Config Read |
