@@ -4,7 +4,7 @@ Three supported topologies, in order of complexity.
 
 | Topology | Who runs it | Transport | Auth | Use this when |
 |---|---|---|---|---|
-| **A. Single user, local** | One human | stdio | none | You use Claude Desktop / Claude Code / Claude Amazon Quick on your own Mac or Linux laptop. |
+| **A. Single user, local** | One human | stdio | none | You use Claude Desktop / Claude Code / Claude Cowork on your own Mac or Linux laptop. |
 | **B. Single user, HTTP** | One human | Streamable HTTP, `127.0.0.1` only | none | You want one server you can curl, or have a non-Claude client that speaks Streamable HTTP. |
 | **C. Team, VM-hosted** | Many humans | Streamable HTTP, behind TLS | per-user bearer tokens | You want N team members to share one server with one set of SentinelOne credentials, with per-user audit and revocation. |
 
@@ -33,7 +33,7 @@ Then edit `~/.config/sentinelone/credentials.json` with your real values:
 }
 ```
 
-Add the server in Amazon Quick: **Settings > Capabilities > MCP > "+ Add MCP / Skill"**. For Claude Desktop users, edit `~/Library/Application Support/Claude/claude_desktop_config.json` (Mac) or `%APPDATA%\Claude\claude_desktop_config.json` (Windows):
+Add the server to Claude Desktop (`~/Library/Application Support/Claude/claude_desktop_config.json` on Mac, or `%APPDATA%\Claude\claude_desktop_config.json` on Windows):
 
 ```json
 {
@@ -52,13 +52,13 @@ Or, equivalently, by package name without the install:
   "mcpServers": {
     "sentinelone-mcp": {
       "command": "npx",
-      "args": ["-y", "@pmoses-s1/sentinelone-mcp@1.2.1"]
+      "args": ["-y", "@pmoses-s1/sentinelone-mcp@1.2.2"]
     }
   }
 }
 ```
 
-Restart Amazon Quick. The server picks credentials up from `~/.config/sentinelone/credentials.json` automatically.
+Restart Claude Desktop. The server picks credentials up from `~/.config/sentinelone/credentials.json` automatically.
 
 ## B. Single user, HTTP
 
@@ -80,7 +80,7 @@ curl -s -X POST http://127.0.0.1:8765/mcp \
 # -> 26
 ```
 
-In Claude Amazon Quick or any MCP client that supports remote HTTP servers, add it:
+In Claude Cowork or any MCP client that supports remote HTTP servers, add it:
 
 ```json
 {
@@ -276,7 +276,7 @@ Each team member drops the script anywhere on their machine (typically `~/.local
 }
 ```
 
-Then Cmd+Q and reopen Claude Desktop. See [`bridge/README.md`](./bridge/README.md) for install, smoke-test, and troubleshooting steps. Claude Amazon Quick users can keep using the native `type: "http"` config (it supports remote HTTP MCPs in current builds) — only Claude Desktop needs the bridge.
+Then Cmd+Q and reopen Claude Desktop. See [`bridge/README.md`](./bridge/README.md) for install, smoke-test, and troubleshooting steps. Claude Cowork users can keep using the native `type: "http"` config (it supports remote HTTP MCPs in current builds) — only Claude Desktop needs the bridge.
 
 ## AWS-specific gotchas
 
@@ -359,7 +359,7 @@ Both block the W+X memory mappings V8 needs to JIT JavaScript. Adding them cause
 
 These are supported but not first-class:
 
-- **Docker / docker-compose.** Not shipped in this version. The single-file Node binary doesn't need it. If you want a container, the install is `FROM node:20-alpine` + `RUN npm install -g @pmoses-s1/sentinelone-mcp@1.2.1` + `CMD ["sentinelone-mcp", "--transport", "http", "--host", "0.0.0.0"]`. Mount creds at `/etc/sentinelone-mcp/credentials.json` and tokens at `/etc/sentinelone-mcp/bearer-tokens.json`.
+- **Docker / docker-compose.** Not shipped in this version. The single-file Node binary doesn't need it. If you want a container, the install is `FROM node:20-alpine` + `RUN npm install -g @pmoses-s1/sentinelone-mcp@1.2.2` + `CMD ["sentinelone-mcp", "--transport", "http", "--host", "0.0.0.0"]`. Mount creds at `/etc/sentinelone-mcp/credentials.json` and tokens at `/etc/sentinelone-mcp/bearer-tokens.json`.
 
 - **External bridge (`supergateway`, `mcp-proxy`).** Pre-1.1.0 deployments used these to wrap the stdio-only server. They still work; this server's native HTTP mode is functionally equivalent and removes the extra process. Prefer native unless you have a specific reason.
 

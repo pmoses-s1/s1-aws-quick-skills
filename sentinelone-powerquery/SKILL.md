@@ -10,7 +10,7 @@ PowerQuery (PQ) is SentinelOne's pipeline query language for the Singularity Dat
 
 Use this skill to write correct, efficient, runnable PowerQueries for threat hunting, investigations, detection rule bodies, and dashboards.
 
-> **Sandbox proxy blocked?** If the LRQ API at `POST /sdl/v2/api/queries` on your console host fails with a connection or proxy error inside the Amazon Quick sandbox, use the `sentinelone-mcp` server instead. It runs locally via `node` and bypasses the sandbox proxy entirely. Setup: add it in Amazon Quick Settings > Capabilities > MCP. The MCP server exposes `powerquery_run`, `powerquery_enumerate_sources`, and `powerquery_schema_discover` — all running through the LRQ API on your machine.
+> **Sandbox proxy blocked?** If the LRQ API at `POST /sdl/v2/api/queries` on your console host fails with a connection or proxy error inside the Amazon Quick sandbox, use the `sentinelone-mcp` server instead. It runs locally via `node` and bypasses the sandbox proxy entirely. Setup: add it in Amazon Quick Settings > Capabilities > MCP (see `sentinelone-mcp/README.md`). The MCP server exposes `powerquery_run`, `powerquery_enumerate_sources`, and `powerquery_schema_discover` — all running through the LRQ API on your machine.
 
 ## Workflow
 
@@ -43,6 +43,7 @@ initial-filter-expression
 - `parse "…$field$…" from srcField` — extract fields from unstructured text
 - `lookup col, … from tableName by key=expr` — join against a CSV/JSON config data table
 - `dataset 'config://datatables/<name>'` — read a lookup table as the source of the pipeline
+- `datasource <name> [from <dataset>]` — read SentinelOne-managed inventory outside the event store (assets, alerts, vulnerabilities, misconfigurations, metering); the only PQ path to the Asset Inventory / AD identity attributes. See `references/datasource-command.md`
 - `savelookup 'tableName'[, 'merge']` — persist current result as a reusable lookup table
 - `| [inner|left|outer|sql inner|sql left|sql outer] join (q1), (q2), … on k1, a.x = b.y` — correlate subqueries (must start `| join`, not just `join`)
 - `| union (q1), (q2), …` — merge heterogeneous result sets (up to 10 queries; use when `filter (…or…)` can't express it)
@@ -229,6 +230,7 @@ Don't read these upfront. Read the one you need.
 - `references/detection-rules.md` — how to author PowerQuery Alerts / STAR / Custom Detection rule bodies, including the 1,000-row / 1 MB alert constraints and which PQ features are supported in alert context.
 - `references/pitfalls.md` — curated list of common failures and their fixes (the `*`-as-filter trap, forgetting `|` before `join`, subquery position errors, memory-limit messages, `message contains` vs `* contains` on JSON-blob sources, and more).
 - `references/automatic-lookups.md` — tenant-wide `/automaticLookups` enrichment that applies to every search and PowerQuery with no `| lookup` typed: config schema, the "output value fields must be unique across all specs" rule, the 100-row / 5 MB / 50-column limits, deploy-via-SDL-API flow, verified `lookup`/`dataset` gotchas, and a full Windows Event Logs SID-to-username worked example. Read when the user wants to add a lookup for SID/username (or any key) that everyone should see automatically, or asks about `/automaticLookups`.
+- `references/datasource-command.md` — the `| datasource <name> [from <dataset>]` command for querying SentinelOne-managed inventory (Asset Inventory, Alerts, Vulnerabilities, Misconfigurations, Metering, SDL retention) that lives outside the event store. Covers datasource names, the `assets`/`metering` datasets, column discovery, time-series via `*_aggregated_snapshots`, and the tenant-validated specifics for asset enrichment: `from 'surface/identity'` vs sparse `from identity`, `from 'surface/endpoint'` vs sparse `from device`, single-quoting slash dataset names, empty-`riskFactors` (`"[]"`) suppression, and the `datasource ... | savelookup` pattern for building enrichment lookup tables. Read whenever the user asks about assets, identities, vulnerabilities, alerts inventory, or building an asset-enrichment lookup.
 
 ## Examples library — read when a hunt matches
 

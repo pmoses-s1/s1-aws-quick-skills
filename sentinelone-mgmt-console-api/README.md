@@ -10,7 +10,7 @@ Copy this folder into your user skills directory:
 cp -r sentinelone-mgmt-console-api ~/.claude/skills/
 ```
 
-In Amazon Quick/Claude Code, the path is:
+In Cowork/Claude Code, the path is:
 
 ```
 /sessions/<session>/mnt/.claude/skills/sentinelone-mgmt-console-api/
@@ -20,7 +20,7 @@ In Amazon Quick/Claude Code, the path is:
 
 ### With sentinelone-mcp (recommended)
 
-Set credentials as environment variables on the `sentinelone-mcp` MCP server (Settings > Capabilities > MCP):
+Set credentials as environment variables on the `sentinelone-mcp` MCP server (Settings > Capabilities > MCP). No `credentials.json` file is needed:
 
 ```json
 "env": {
@@ -32,7 +32,7 @@ Set credentials as environment variables on the `sentinelone-mcp` MCP server (Se
 
 ### Without sentinelone-mcp (direct skill use)
 
-Drop a `credentials.json` file into your repo folder (see [`../credentials.example.json`](../credentials.example.json) for all available keys). The MCP server auto-discovers it by walking up the directory tree. To trigger a manual refresh: `bash scripts/bootstrap_creds.sh`.
+Drop a `credentials.json` file into your repo folder (see [`../credentials.example.json`](../credentials.example.json) for all available keys). The MCP server's credential resolver auto-discovers it. To trigger a manual refresh: `bash scripts/bootstrap_creds.sh`.
 
 ```json
 {

@@ -6,7 +6,7 @@
  *   2. S1_CREDS_FILE (explicit absolute path; recommended for team / VM deployments)
  *   3. COWORK_WORKSPACE/credentials.json
  *   4. Walk-up from cwd looking for credentials.json
- *   5. ~/mnt/<any-folder>/credentials.json (Amazon Quick workspace mounts)
+ *   5. ~/mnt/<any-folder>/credentials.json (Cowork workspace mounts)
  *   6. CLAUDE_CONFIG_DIR/sentinelone/credentials.json
  *   7. ~/.config/sentinelone/credentials.json
  */
@@ -63,7 +63,7 @@ function discoverCredentials() {
     dir = parent;
   }
 
-  // 3. ~/mnt/* scan (Amazon Quick workspace mounts)
+  // 3. ~/mnt/* scan (Cowork workspace mounts)
   const homeMnt = join(homedir(), 'mnt');
   if (existsSync(homeMnt)) {
     try {

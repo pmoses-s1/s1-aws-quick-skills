@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/pmoses-s1/claude-skills/blob/main/SECURITY.md
+    about: Report security issues privately, not via public issues. See SECURITY.md.
+  - name: SentinelOne product support
+    url: https://support.sentinelone.com
+    about: For SentinelOne console, agent, or API questions unrelated to this repo.

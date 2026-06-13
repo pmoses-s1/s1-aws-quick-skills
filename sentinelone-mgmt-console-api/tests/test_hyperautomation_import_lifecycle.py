@@ -2,17 +2,17 @@
 Hyperautomation workflow import lifecycle test — REVERSIBLE.
 
 Builds a minimal workflow JSON from scratch, imports it, verifies it appears
-in the list, then archives (soft-deletes) it:
+in the list, then deletes it:
 
     BUILD   (construct minimal workflow dict in memory)
     IMPORT  POST   /web/api/v2.1/hyper-automate/api/public/workflow-import-export/import
     LIST    GET    /web/api/v2.1/hyper-automate/api/public/workflows
-    ARCHIVE POST   /web/api/v2.1/hyper-automate/api/public/workflows/archive
+    DELETE  DELETE /web/api/v2.1/hyper-automate/api/v1/workflows/{id}?accountIds=<acct>
     VERIFY  GET    (expect workflow absent from active list)
 
 The workflow contains only a Manual Trigger and is never activated, so it
-cannot fire against live data. Archive is a soft-delete — the workflow is
-hidden from the UI but recoverable from the archive list. Zero blast radius.
+cannot fire against live data. Delete is a soft, recoverable delete (the console
+offers a "Restore workflow" action). Zero blast radius.
 
 Note on token type
 ------------------
@@ -68,7 +68,7 @@ def _build_minimal_workflow(name: str) -> Dict[str, Any]:
     """Build the minimal valid workflow JSON: one Manual Trigger, no downstream actions."""
     return {
         "name": name,
-        "description": f"Smoke test. run_tag={RUN_TAG}. Safe to archive.",
+        "description": f"Smoke test. run_tag={RUN_TAG}. Safe to delete.",
         "actions": [
             {
                 "action": {
@@ -164,40 +164,26 @@ def find_v1_id_by_name(client: S1Client, account_id: str,
     return None
 
 
-def archive_workflow(client: S1Client, v1_workflow_id: str) -> Any:
+def delete_workflow(client: S1Client, v1_workflow_id: str, account_id: str) -> Any:
     """
-    Archive via /api/v1/workflows/archive using the v1 UUID.
+    Delete via the REST DELETE endpoint using the v1 UUID:
+        DELETE /api/v1/workflows/{id}?accountIds=<acct>   -> 204 (soft, recoverable)
 
-    Archive body format — findings as of 2026-05:
-      Endpoint is NOT in the swagger. Tested body keys:
-        {"ids": [...]}                   -> HTTP 500 on demo tenant
-        {"ids": [...], "siteIds": [...]} -> HTTP 500
-        {"workflowIds": [...]}           -> HTTP 500
-      All variants return 500 on the demo tenant. This appears to be a
-      tenant-level restriction or token-scope issue rather than a body format
-      problem. The test treats archive failure as non-fatal; import + list are
-      the meaningful lifecycle checks.
+    Validated 2026-06-13 (import -> publish -> delete -> gone from list). Scope with
+    accountIds for an account-scoped workflow (or siteIds for a site-scoped one); a
+    404 "Object not found" means the id is not under that scope or is already deleted.
 
-    DevTools capture from the UI (user's HA learnings doc) suggests the UI uses
-    {"ids": ["<v1_uuid>"]} — trying that first, then workflowIds as fallback.
+    NOTE: the older POST /workflows/archive returns 500 on this tenant and must not be
+    used — the REST DELETE above is the correct delete mechanism.
     """
-    last_err: Exception = RuntimeError("no attempt made")
-    for body in [
-        {"ids": [v1_workflow_id]},
-        {"workflowIds": [v1_workflow_id]},
-    ]:
-        try:
-            return client.post(f"{HA_V1}/workflows/archive", json_body=body)
-        except S1APIError as e:
-            last_err = e
-            _log(f"  archive body={list(body.keys())} -> HTTP {e.status}")
-    raise last_err
+    return client.delete(f"{HA_V1}/workflows/{v1_workflow_id}",
+                         params={"accountIds": account_id})
 
 
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--account-id", default=None, help="pin to a specific account ID")
-    ap.add_argument("--keep", action="store_true", help="skip archive after run")
+    ap.add_argument("--keep", action="store_true", help="skip delete after run")
     args = ap.parse_args()
 
     client = S1Client(timeout=30)
@@ -241,39 +227,38 @@ def main() -> int:
     else:
         _log(f"LIST ok: {len(hits)} hit(s); imported workflow present")
 
-    # --- 3. ARCHIVE ---
+    # --- 3. DELETE ---
     if args.keep:
         _log(f"KEEP flag set. Leaving workflow {workflow_id} (name={WORKFLOW_NAME!r})")
         return 0
 
-    # Find the v1 UUID for this workflow by name — archive requires the v1 id.
+    # Find the v1 UUID for this workflow by name — delete requires the v1 id.
     _log(f"FIND v1 id for workflow name={WORKFLOW_NAME!r}")
     v1_id = find_v1_id_by_name(client, account_id, WORKFLOW_NAME)
-    if v1_id:
-        _log(f"Found v1_id={v1_id}")
-        _log(f"ARCHIVE: POST {HA_V1}/workflows/archive")
-        try:
-            archive_workflow(client, v1_id)
-            _log("ARCHIVE ok")
-        except S1APIError as e:
-            _log(f"ARCHIVE FAILED: HTTP {e.status} {e}. "
-                 f"Manual cleanup: run mcp ha_archive_workflow with id={workflow_id}")
-            # Not a fatal test failure — deactivate as fallback.
-    else:
-        _log(f"v1 id not found for {WORKFLOW_NAME!r} — skipping archive. "
-             f"Manual cleanup: mcp ha_archive_workflow with id={workflow_id}")
+    if not v1_id:
+        _log(f"DELETE FAILED: v1 id not found for {WORKFLOW_NAME!r}. "
+             f"Manual cleanup: mcp ha_delete_workflow with id={workflow_id}")
+        return 1
+    _log(f"Found v1_id={v1_id}")
+    _log(f"DELETE: DELETE {HA_V1}/workflows/{v1_id}?accountIds={account_id}")
+    try:
+        delete_workflow(client, v1_id, account_id)
+        _log("DELETE ok (204)")
+    except S1APIError as e:
+        _log(f"DELETE FAILED: HTTP {e.status} {e}. "
+             f"Manual cleanup: run mcp ha_delete_workflow with id={workflow_id}")
+        return 1
 
     # --- 4. VERIFY ---
     time.sleep(2)
     remaining = list_recent_workflows(client, account_id)
-    still_active = remaining  # any remaining hit with run_tag in name = not archived
-    if still_active:
-        _log(f"VERIFY: workflow {workflow_id} still visible in public list after archive — "
-             "expected if archive moves it to a separate archived tab rather than deleting it")
+    if remaining:
+        _log(f"VERIFY: workflow {workflow_id} still present after delete "
+             f"({len(remaining)} hit(s)) — soft-delete may lag the active list; verify in the console.")
     else:
-        _log("VERIFY ok: workflow absent from active list")
+        _log("VERIFY ok: workflow absent from active list after delete")
 
-    _log("Hyperautomation workflow lifecycle: IMPORT → LIST → ARCHIVE → VERIFY — ALL OK")
+    _log("Hyperautomation workflow lifecycle: IMPORT → LIST → DELETE → VERIFY — ALL OK")
     return 0
 
 

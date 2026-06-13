@@ -10,7 +10,7 @@ Copy this folder into your user skills directory:
 cp -r sentinelone-sdl-api ~/.claude/skills/
 ```
 
-In Amazon Quick/Claude Code, the path is:
+In Cowork/Claude Code, the path is:
 
 ```
 /sessions/<session>/mnt/.claude/skills/sentinelone-sdl-api/
@@ -20,7 +20,7 @@ In Amazon Quick/Claude Code, the path is:
 
 ### With sentinelone-mcp (recommended)
 
-Set credentials as environment variables on the `sentinelone-mcp` MCP server (Settings > Capabilities > MCP):
+Set credentials as environment variables on the `sentinelone-mcp` MCP server (Settings > Capabilities > MCP). No `credentials.json` file is needed:
 
 ```json
 "env": {
@@ -34,7 +34,7 @@ Set credentials as environment variables on the `sentinelone-mcp` MCP server (Se
 
 ### Without sentinelone-mcp (direct skill use)
 
-The SDL API has four scoped key types plus (optionally) the same management-console API token used by `sentinelone-mgmt-console-api` (`S1_CONSOLE_API_TOKEN`). Drop a `credentials.json` into your repo folder with the keys you need (see [`credentials.example.json`](../credentials.example.json) for all available keys). The MCP server auto-discovers it by walking up the directory tree.sh` to refresh manually:
+The SDL API has four scoped key types plus (optionally) the same management-console API token used by `sentinelone-mgmt-console-api` (`S1_CONSOLE_API_TOKEN`). Drop a `credentials.json` into your repo folder with the keys you need (see [`credentials.example.json`](../credentials.example.json) for all available keys). The MCP server auto-discovers it by walking up the directory tree; run `bash scripts/bootstrap_creds.sh` to refresh manually:
 
 ```json
 {

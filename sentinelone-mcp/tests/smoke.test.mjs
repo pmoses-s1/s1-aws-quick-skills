@@ -35,7 +35,7 @@ const EXPECTED_TOOLS = [
   // Hyperautomation (5)
   'ha_list_workflows',
   'ha_get_workflow',
-  'ha_archive_workflow',
+  'ha_delete_workflow',
   'ha_import_workflow',
   'ha_export_workflow',
   // UAM Ingest (3)
@@ -45,7 +45,7 @@ const EXPECTED_TOOLS = [
 ];
 
 test('server version is current', () => {
-  assert.equal(SERVER_INFO.version, '1.2.1');
+  assert.equal(SERVER_INFO.version, '1.2.2');
 });
 
 test('ALL_TOOLS exposes exactly 26 tools', () => {

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Mac validation script for sentinelone-mcp v1.2.1.
+# Mac validation script for sentinelone-mcp v1.2.2.
 #
 # Runs the same test matrix as Linux:
 #   - syntax-check every .js/.mjs file
@@ -100,12 +100,12 @@ fi
 # ─── 5. CLI flag sanity ───────────────────────────────────────────────────────
 
 step "5. CLI flag sanity"
-if [[ "$(node index.js --version 2>/dev/null)" == "1.2.1" ]]; then
-  pass "--version returns 1.2.1"
+if [[ "$(node index.js --version 2>/dev/null)" == "1.2.2" ]]; then
+  pass "--version returns 1.2.2"
 else
-  fail "--version did not return 1.2.1" "Got: $(node index.js --version 2>&1)"
+  fail "--version did not return 1.2.2" "Got: $(node index.js --version 2>&1)"
 fi
-if node index.js --help 2>&1 | grep -q "sentinelone-mcp 1.2.1"; then
+if node index.js --help 2>&1 | grep -q "sentinelone-mcp 1.2.2"; then
   pass "--help renders"
 else
   fail "--help broken" "$(node index.js --help 2>&1 | head -5)"

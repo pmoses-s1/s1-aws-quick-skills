@@ -32,7 +32,7 @@ See **[deploy/README.md](./deploy/README.md)** for the full deployment walkthrou
 | SDL API | `sdl_list_files` | sentinelone-sdl-api / sdl-dashboard / sdl-log-parser |
 | SDL API | `sdl_put_file` | sentinelone-sdl-api / sdl-dashboard / sdl-log-parser |
 | SDL API | `hec_ingest` | sentinelone-sdl-api / sdl-log-parser |
-| Hyperautomation | `ha_archive_workflow` | sentinelone-hyperautomation |
+| Hyperautomation | `ha_delete_workflow` | sentinelone-hyperautomation |
 | Hyperautomation | `ha_export_workflow` | sentinelone-hyperautomation |
 | Hyperautomation | `ha_get_workflow` | sentinelone-hyperautomation |
 | Hyperautomation | `ha_import_workflow` | sentinelone-hyperautomation |
@@ -58,14 +58,14 @@ Three paths, pick the one that matches your setup:
 
 MCP runs as a subprocess on your machine, talking SentinelOne APIs directly. Credentials live in the Claude config `env` block.
 
-Add this in Amazon Quick (Settings > Capabilities > MCP), or for Claude Code use `.mcp.json`:
+Add this to `claude_desktop_config.json` (or `.mcp.json` for Claude Code):
 
 ```json
 {
   "mcpServers": {
     "sentinelone-mcp": {
       "command": "npx",
-      "args": ["-y", "@pmoses-s1/sentinelone-mcp@1.2.1"],
+      "args": ["-y", "@pmoses-s1/sentinelone-mcp@1.2.2"],
       "env": {
         "S1_CONSOLE_URL":       "https://usea1-yourorg.sentinelone.net",
         "S1_CONSOLE_API_TOKEN": "eyJ...",
@@ -80,7 +80,7 @@ Add this in Amazon Quick (Settings > Capabilities > MCP), or for Claude Code use
 }
 ```
 
-Restart Amazon Quick. `npx -y` caches the package on first launch.
+Restart Claude Desktop. `npx -y` caches the package on first launch.
 
 ### B. Reproducible: install script
 
@@ -94,7 +94,7 @@ For VM deployments, the same script in `--server` mode does everything (system u
 
 ### C. Claude Desktop connecting to a team VM (stdio bridge)
 
-When the MCP is running as a shared service on a Linux VM (deploy topology C in [deploy/README.md](./deploy/README.md)) and you're connecting from Claude Desktop, you need a small stdio↔HTTPS shim because Claude Desktop's stable build doesn't accept `type: "http"` configs. (Claude Amazon Quick and Claude Code do; see "[Calling the HTTP endpoint directly](#calling-the-http-endpoint-directly)" for the native `type: "http"` form.)
+When the MCP is running as a shared service on a Linux VM (deploy topology C in [deploy/README.md](./deploy/README.md)) and you're connecting from Claude Desktop, you need a small stdio↔HTTPS shim because Claude Desktop's stable build doesn't accept `type: "http"` configs. (Claude Cowork and Claude Code do; see "[Calling the HTTP endpoint directly](#calling-the-http-endpoint-directly)" for the native `type: "http"` form.)
 
 The bridge is a 40-line zero-dependency Node script shipped at [`deploy/bridge/sentinelone-mcp-bridge.mjs`](./deploy/bridge/sentinelone-mcp-bridge.mjs).
 
@@ -107,7 +107,7 @@ curl -fsSL https://raw.githubusercontent.com/pmoses-s1/claude-skills/main/sentin
 chmod +x ~/.local/bin/sentinelone-mcp-bridge.mjs
 ```
 
-Then prints the wiring instructions for Amazon Quick MCP settings:
+Then adds this block to `claude_desktop_config.json`:
 
 ```json
 {
@@ -146,11 +146,11 @@ Cmd+Q and reopen Claude Desktop. SentinelOne credentials live on the VM in `/etc
 
 ### Credential resolution order (highest priority wins)
 
-1. Environment variables (set in the MCP configuration, systemd `EnvironmentFile`, or your shell).
+1. Environment variables (set in `claude_desktop_config.json` `env`, systemd `EnvironmentFile`, or your shell).
 2. `S1_CREDS_FILE` — explicit path to a JSON file (recommended for VM deployments and secret-store integrations).
 3. `COWORK_WORKSPACE/credentials.json`.
 4. Walk-up from the current working directory looking for `credentials.json`.
-5. `~/mnt/<folder>/credentials.json` (Amazon Quick workspace mounts).
+5. `~/mnt/<folder>/credentials.json` (Cowork workspace mounts).
 6. `$CLAUDE_CONFIG_DIR/sentinelone/credentials.json`.
 7. `~/.config/sentinelone/credentials.json`.
 
@@ -463,7 +463,7 @@ sentinelone-mcp/
     powerquery.js             PowerQuery enumerate/run/schema-discover
     mgmt-console.js           S1 REST verbs + Purple AI summary + UAM
     sdl-api.js                SDL config file + log ingestion tools
-    hyperautomation.js        Hyperautomation list/get/import/export/archive
+    hyperautomation.js        Hyperautomation list/get/import/export/delete
     uam-ingest.js             UAM Alert Interface ingestion tools
   deploy/
     install.sh                One-shot installer (Mac and Linux)
@@ -508,7 +508,7 @@ The `sentinelone://soc-context` resource and `soc_analyst` prompt load `CLAUDE.m
 2. `<cwd>/CLAUDE.md` — your repo folder, when launched from there.
 3. Same-dir / parent / grandparent of the server's `index.js` — when running from a git clone.
 
-For npx installs without a CLAUDE.md nearby, set `S1_CLAUDE_MD_PATH` in the MCP server's environment variables (Settings > Capabilities > MCP) to point at the file on disk. Restart Amazon Quick to pick up edits.
+For npx installs without a CLAUDE.md nearby, set `S1_CLAUDE_MD_PATH` in the `env` block of `claude_desktop_config.json` to point at the one in your repo folder. Restart Claude Desktop to pick up edits.
 
 ## Removed tools
 

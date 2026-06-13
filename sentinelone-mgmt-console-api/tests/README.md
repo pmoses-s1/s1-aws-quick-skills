@@ -26,7 +26,7 @@ every GET + curated safe POSTs.
 | UAM Alert Interface (single) | POST /v1/indicators + /v1/alerts (1 indicator, 1 alert) → poll UAM → verify link → close | `tests/test_uam_alert_interface_single.py` | Semi (closes alert; ingested events are not hard-deletable) |
 | UAM Alert Interface (batch, multi-observable) | batched POST of 3 indicators (file+process+network, OCSF 1001/1007/4001) each with 3+ observables, 1 alert referencing all 3 on a single device -> poll UAM -> assert every metadata.uid + observable surfaces in alert.rawIndicators -> close | `tests/test_uam_alert_interface_batch.py` | Semi (closes alert; ingested events are not hard-deletable). PARTIAL: multi-indicator stitching is flaky on-tenant (2 of 3 indicators typically land inside a 2-minute grace window). See "Known limitations" below. |
 | Unified Exclusions v2.1 | CREATE (EDR path, site scope) → LIST → DELETE → VERIFY | `tests/test_unified_exclusion_lifecycle.py` | Yes (scoped to one site, fictional path) |
-| Hyperautomation workflow import | IMPORT (minimal manual-trigger workflow) → LIST (recent 20) → ARCHIVE attempt → VERIFY | `tests/test_hyperautomation_import_lifecycle.py` | Mostly (archive returns 500 on demo tenant — likely token permissions; workflow left in draft). See gotchas below. |
+| Hyperautomation workflow lifecycle | IMPORT (minimal manual-trigger workflow) → LIST (recent 20) → DELETE → VERIFY | `tests/test_hyperautomation_import_lifecycle.py` | Yes (REST DELETE, 204; validated 2026-06-13). See gotchas below. |
 | Detection rule ENABLE/DISABLE | CREATE (disabled) → ENABLE → VERIFY_ON (accepts activating) → DISABLE → VERIFY_OFF → DELETE → VERIFY (scheduled + events both exercised) | `tests/test_detection_rule_activate_lifecycle.py` | Yes (demo site; 24h window prevents real firing) |
 | XDR Graph Query | FORMAT DISCOVERY → SAVE → LIST → UPDATE → DELETE → VERIFY | `tests/test_xdr_graph_query_lifecycle.py` | Yes (skips gracefully if no saved queries exist on tenant to use as format template) |
 | STAR rules (events-type detection) | CREATE (Draft) → LIST → UPDATE → DELETE → VERIFY | `tests/test_star_rule_lifecycle.py` | Yes (Draft status, never activates; fictional process name in query) |
@@ -517,15 +517,15 @@ IMPORT  POST  /web/api/v2.1/hyper-automate/api/public/workflow-import-export/imp
 LIST    GET   /web/api/v2.1/hyper-automate/api/public/workflows
         ?accountIds=...&limit=20&skip=0&sortBy=updated_at&sortOrder=desc
         items: {id: <uuid>, workflow: {id: same_uuid, name, state, ...}, actions: [...]}
-ARCHIVE POST  /web/api/v2.1/hyper-automate/api/v1/workflows/archive
-        body: {"ids": [<uuid>]}   # UI DevTools capture; "workflowIds" also 500
+DELETE  DELETE /web/api/v2.1/hyper-automate/api/v1/workflows/{id}?accountIds=<acct>
+        -> 204 No Content (soft, recoverable delete)
 ```
 
 **Gotchas confirmed vs. live API:**
 - Public import response key is `id` not `workflowId`; `version_id` not `versionId`.
 - `/api/public/workflows` and `/api/v1/workflows` return the same nested format: `{id, workflow: {...}, actions: []}`. The `workflow.id` == top-level `id`.
 - Tenant had 1050+ workflows. `nextCursor` returns literal string `"null"` (truthy in Python) — loop by skip/limit, not cursor. Sort by `updated_at desc` and scan first 20 to find a newly imported workflow without paginating 1050 rows.
-- Archive (`/api/v1/workflows/archive`) is NOT in the swagger. Tested body formats: `{"ids": [...]}`, `{"ids": [...], "siteIds": [...]}`, `{"ids": [...], "accountIds": [...]}`, `{"workflowIds": [...]}` — all return HTTP 500 on the demo tenant via API token. UI DevTools capture suggests the UI sends `{"ids": [...]}`. The consistent 500 regardless of body shape points to a token-level restriction (service user vs. personal console user) rather than a body format problem. The test tries `ids` first then `workflowIds` and treats archive failure as non-fatal.
+- Delete is a REST `DELETE /api/v1/workflows/{id}?accountIds=<acct>` (returns 204, soft/recoverable; validated 2026-06-13: import then publish then delete then gone-from-list). Scope with `accountIds` or `siteIds` to match where the workflow lives. The older `POST /workflows/archive` returns HTTP 500 on this tenant regardless of body shape — do not use it. The test deletes via the REST DELETE and treats a delete failure as fatal.
 
 ## 14. Detection rule ENABLE/DISABLE lifecycle (2026-05-03)
 
@@ -597,7 +597,7 @@ python tests/test_alert_indicator_pivot.py          # alert→IOC pivot (single-
 python tests/test_uam_alert_interface_single.py     # POST 1 OCSF indicator + 1 alert, verify in UAM, close
 python tests/test_uam_alert_interface_batch.py      # batched POST of 3 multi-observable indicators + 1 alert referencing all 3, verify in UAM, close
 python tests/test_unified_exclusion_lifecycle.py    # EDR path exclusion CREATE/LIST/DELETE
-python tests/test_hyperautomation_import_lifecycle.py  # workflow IMPORT/LIST/ARCHIVE
+python tests/test_hyperautomation_import_lifecycle.py  # workflow IMPORT/LIST/DELETE
 python tests/test_detection_rule_activate_lifecycle.py  # ENABLE/DISABLE scheduled + events rules
 python tests/test_xdr_graph_query_lifecycle.py      # graph query SAVE/LIST/UPDATE/DELETE (skips if no saved queries)
 python tests/test_star_rule_lifecycle.py            # STAR rule (events) CREATE/LIST/UPDATE/DELETE

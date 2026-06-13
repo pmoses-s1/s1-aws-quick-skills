@@ -10,7 +10,7 @@ Copy this folder into your user skills directory:
 cp -r sentinelone-sdl-dashboard ~/.claude/skills/
 ```
 
-In Amazon Quick/Claude Code, the path is:
+In Cowork/Claude Code, the path is:
 
 ```
 /sessions/<session>/mnt/.claude/skills/sentinelone-sdl-dashboard/

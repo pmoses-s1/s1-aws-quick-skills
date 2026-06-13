@@ -8,7 +8,7 @@ description: Use whenever the user wants to query, update, create, or act on a S
 
 Wraps the SentinelOne Management Console API (Swagger 2.0, spec version 2.1, 781 operations) with a pre-built Python client, a compact endpoint index, and per-tag reference files.
 
-> **Sandbox proxy blocked?** If calls to `*.sentinelone.net` fail with a connection or proxy error inside the Amazon Quick sandbox, use the `sentinelone-mcp` server instead. It runs locally on your machine via `node` and bypasses the sandbox proxy entirely. Setup: add it in Amazon Quick Settings > Capabilities > MCP. The MCP server exposes all the tools in this skill — `s1_api_get`, `s1_api_post`, `purple_ai_alert_summary`, `uam_list_alerts`, `uam_get_alert`, `uam_add_note`, `uam_set_status` — with schemas validated against the live API. For natural-language Purple AI queries and AI investigations, use the Purple MCP (`mcp__purple-mcp__purple_ai`) directly — those operations require a browser-session teamToken that API tokens never obtain.
+> **Sandbox proxy blocked?** If calls to `*.sentinelone.net` fail with a connection or proxy error inside the Amazon Quick sandbox, use the `sentinelone-mcp` server instead. It runs locally on your machine via `node` and bypasses the sandbox proxy entirely. Setup: add it in Amazon Quick Settings > Capabilities > MCP (see `sentinelone-mcp/README.md`). The MCP server exposes all the tools in this skill — `s1_api_get`, `s1_api_post`, `purple_ai_alert_summary`, `uam_list_alerts`, `uam_get_alert`, `uam_add_note`, `uam_set_status` — with schemas validated against the live API. For natural-language Purple AI queries and AI investigations, use the Purple MCP (`mcp__purple-mcp__purple_ai`) directly — those operations require a browser-session teamToken that API tokens never obtain.
 
 ## Setup — configure credentials first
 
@@ -1139,15 +1139,13 @@ Auth: same `Authorization: ApiToken <token>` header as all other S1 REST calls.
 | List workflows | `GET` | `/workflows?limit=&skip=&siteIds=&sortBy=&sortOrder=` |
 | Get single workflow | `GET` | `/workflows/single/{workflowId}/{revisionId}` |
 | Workflow filter counts | `GET` | `/workflows/filters-count?siteIds=` |
-| Archive (delete) workflow | `POST` | `/workflows/archive` |
+| Delete workflow | `DELETE` | `/workflows/{id}?accountIds=<acct>` |
 | Export all workflows (ZIP) | `GET` | `/workflow-import-export/export` *(confirmed on /public path)* |
 | Import workflow | `POST` | `/workflow-import-export/import` *(confirmed on /public path)* |
 
 **Important:** the single-workflow fetch requires BOTH `workflowId` AND `revisionId`. The `revisionId` is the `workflow.version_id` field returned in the list response. `GET /workflows/single/{id}` without a revision returns 404.
 
-**Deletion is a soft-archive, not HTTP DELETE.** The UI calls `POST /workflows/archive` with an array of IDs in the request body.
-
-**Archive body format — unresolved (2026-05):** The archive endpoint is NOT in the swagger. UI DevTools capture suggests the body is `{"ids": ["<v1_uuid>"]}`. Tested variants via API token on the demo tenant: `{"ids": [...]}`, `{"ids": [...], "siteIds": [...]}`, `{"workflowIds": [...]}` — all return HTTP 500. The MCP tool `ha_archive_workflow` also returns 500 on this tenant. This is likely a tenant-level permission restriction on the service user token, not a body format problem. `Hyper Automate.write` scope is confirmed required; even with it, archive may be blocked for service users.
+**Deletion is a REST `DELETE` (soft, recoverable).** `DELETE /web/api/v2.1/hyper-automate/api/v1/workflows/{id}?accountIds=<acct>` returns `204` (validated 2026-06-13: import then publish then delete then gone-from-list). Scope with `accountIds` or `siteIds` to match where the workflow lives. The older `POST /workflows/archive` and the legacy archive wrapper return HTTP 500 on this tenant — do not use them; the REST `DELETE` is the correct mechanism.
 
 Export/import were not captured in the v1 network trace. They are confirmed working at the `/public` base path; the `/v1` equivalents have not been verified.
 
@@ -1186,14 +1184,14 @@ Action types observed: `singularity_response_trigger`, `manual_trigger`, `http_t
 
 `ha_list_workflows` — list with scope/sort/pagination. Returns `revisionId` alongside each workflow.
 `ha_get_workflow` — fetch a single workflow by `workflowId` + optional `revisionId` (auto-resolves from list if omitted).
-`ha_archive_workflow` — soft-delete one or more workflows via `POST /workflows/archive`. Confirm with user before calling.
+`ha_delete_workflow` — soft-delete one or more workflows via `DELETE /workflows/{id}` (scope with accountIds/siteIds). Confirm with user before calling.
 `ha_import_workflow` — create workflow from JSON. Requires Hyper Automate.write permission.
 `ha_export_workflow` — export all workflows as ZIP.
 
 ### Permissions
 
 `Hyper Automate.view` — read operations (list, get, filter-count, export).
-`Hyper Automate.write` — write operations (import, archive). Confirmed: without this permission, import returns 403.
+`Hyper Automate.write` — write operations (import, delete). Confirmed: without this permission, import returns 403.
 
 ## Using sentinelone-mcp tools for direct console operations
 

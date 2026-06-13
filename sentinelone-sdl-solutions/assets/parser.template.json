@@ -1,0 +1,20 @@
+{
+  "timezone": "UTC",
+  "attributes": {
+    "metadata.version": "1.0.0",
+    "dataSource.category": "security",
+    "dataSource.name": "{{DATASOURCE_NAME}}",
+    "dataSource.vendor": "{{PREFIX}}"
+  },
+  "formats": [
+    {
+      "id": "enrich",
+      "format": "{{HOSTNAME_FIELD}}=${{HOSTNAME_FIELD}}$ {{USERNAME_FIELD}}=${{USERNAME_FIELD}}$ action=$action$ outcome=$outcome$",
+      "halt": true,
+      "rewrites": [
+        { "action": "computeFields", "expression": "| lookup device_os, device_ip, device_agentuuid, device_lastuser, device_site, device_criticality, device_riskfactors from {{ENDPOINT_TABLE}} by hostname = {{HOSTNAME_FIELD}}" },
+        { "action": "computeFields", "expression": "| lookup user_principal, user_sid, user_domain, user_dn, user_groups, user_privileged, user_criticality, user_riskfactors from {{IDENTITY_TABLE}} by username = {{USERNAME_FIELD}}" }
+      ]
+    }
+  ]
+}

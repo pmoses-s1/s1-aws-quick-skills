@@ -48,7 +48,7 @@ const TOOL_SKILL = {
   // Hyperautomation
   ha_list_workflows:             'sentinelone-hyperautomation',
   ha_get_workflow:               'sentinelone-hyperautomation',
-  ha_archive_workflow:           'sentinelone-hyperautomation',
+  ha_delete_workflow:           'sentinelone-hyperautomation',
   ha_import_workflow:            'sentinelone-hyperautomation',
   ha_export_workflow:            'sentinelone-hyperautomation',
   // UAM Ingest

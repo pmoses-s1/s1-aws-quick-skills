@@ -4,8 +4,8 @@
  * Tools:
  *   ha_list_workflows     List Hyperautomation workflows (with scope/state/sort filters)
  *   ha_get_workflow       Get a single workflow by ID (+ optional revisionId)
- *   ha_archive_workflow   Archive (soft-delete) a workflow
- *   ha_import_workflow    Import (create) a workflow from JSON
+ *   ha_delete_workflow    Delete (soft, recoverable) a workflow via REST DELETE
+ *   ha_import_workflow    Import (create) a workflow from JSON (account- or site-scoped)
  *   ha_export_workflow    Export all workflows as a ZIP archive
  *
  * API root (confirmed via live network capture 2026-05-03):
@@ -15,14 +15,15 @@
  *   GET /workflows/single/{workflowId}/{revisionId}
  * The revisionId is workflow.version_id in the list response.
  *
- * Deletion is a soft-archive, not HTTP DELETE:
- *   POST /workflows/archive  { workflowIds: [<uuid>, ...] }
+ * Deletion is a soft, recoverable HTTP DELETE (validated 2026-06-13):
+ *   DELETE /workflows/{id}?accountIds=<acct>   (or ?siteIds=<site>)
+ * The older POST /workflows/archive returns 500 on this tenant — do not use it.
  *
- * Export/import paths were NOT captured in the network trace — kept at their
- * previously confirmed /public paths until the /v1 equivalents are verified.
+ * Import scope: the public import endpoint accepts ?accountIds=<acct> or
+ * ?siteIds=<site>; with no scope it returns a misleading 403 on a scoped tenant.
  */
 
-import { apiGet, apiPost } from '../lib/s1.js';
+import { apiGet, apiPost, apiDelete } from '../lib/s1.js';
 
 // Confirmed base path from live network monitor (2026-05-03).
 const HA_BASE = '/web/api/v2.1/hyper-automate/api/v1';
@@ -156,36 +157,57 @@ export const tools = [
     },
   },
 
-  // ─── ha_archive_workflow ──────────────────────────────────────────────────
+  // ─── ha_delete_workflow ───────────────────────────────────────────────────
   {
-    name: 'ha_archive_workflow',
-    description: `Archive (soft-delete) one or more Hyperautomation workflows. Archive is the console's delete operation — the workflow is removed from the active list but the underlying data is retained. Equivalent to clicking Delete in the Hyperautomation UI. Requires Hyper Automate.write permission. Returns the API response (200 OK on success). This action is NOT easily reversible — confirm with the user before calling.`,
+    name: 'ha_delete_workflow',
+    description: `Delete one or more Hyperautomation workflows. Uses the REST DELETE /hyper-automate/api/v1/workflows/{id} endpoint (validated 2026-06-13) — a soft, recoverable delete (the console offers a "Restore workflow" action), equivalent to clicking Delete in the Hyperautomation UI. Scope the call to where the workflow lives with accountIds (account-scoped workflow) or siteIds (site-scoped); a 404 "Object not found" means the id is not under that scope or is already deleted. Requires Hyper Automate.write permission. NOTE: do NOT use the older POST /workflows/archive path — it returns 500 on this tenant.`,
     inputSchema: {
       type: 'object',
       properties: {
         workflowIds: {
           type: 'array',
           items: { type: 'string' },
-          description: 'One or more workflow UUIDs to archive (from ha_list_workflows).',
+          description: 'One or more workflow UUIDs to delete (from ha_list_workflows).',
+        },
+        accountIds: {
+          type: 'string',
+          description: 'Account scope for an account-level workflow (e.g. "2046190533732727925"). Provide this OR siteIds.',
+        },
+        siteIds: {
+          type: 'string',
+          description: 'Site scope for a site-level workflow. Provide this OR accountIds.',
         },
       },
       required: ['workflowIds'],
     },
-    async handler({ workflowIds }) {
+    async handler({ workflowIds, accountIds, siteIds } = {}) {
       if (!Array.isArray(workflowIds) || workflowIds.length === 0) {
         return JSON.stringify({ error: 'workflowIds must be a non-empty array of UUIDs.' });
       }
-      // Confirmed: POST /workflows/archive with IDs in request body.
-      // This is the backend call behind the UI Delete button.
-      const result = await apiPost(`${HA_BASE}/workflows/archive`, { workflowIds });
-      return JSON.stringify(result, null, 2);
+      if (!accountIds && !siteIds) {
+        return JSON.stringify({ error: 'Provide accountIds or siteIds to scope the delete to where the workflow lives (a workflow created at a site must be deleted with siteIds; an account-scoped one with accountIds).' });
+      }
+      const scope = accountIds
+        ? `accountIds=${encodeURIComponent(accountIds)}`
+        : `siteIds=${encodeURIComponent(siteIds)}`;
+      const results = [];
+      for (const id of workflowIds) {
+        try {
+          // DELETE returns 204 No Content on success.
+          await apiDelete(`${HA_BASE}/workflows/${encodeURIComponent(id)}?${scope}`);
+          results.push({ id, status: 'deleted' });
+        } catch (e) {
+          results.push({ id, status: 'error', error: e.message });
+        }
+      }
+      return JSON.stringify({ deleted: results }, null, 2);
     },
   },
 
   // ─── ha_import_workflow ───────────────────────────────────────────────────
   {
     name: 'ha_import_workflow',
-    description: `Import a Hyperautomation workflow JSON into the SentinelOne console. The workflow JSON must follow the Hyperautomation schema (use the sentinelone-hyperautomation skill to generate valid JSON). Integration-backed actions (type=http_request with an integration_id) require pre-configured connections in Hyperautomation > Integrations before the workflow will run. The import API validates schema but cannot check if integrations are configured. Returns the created workflow ID on success. Requires Hyper Automate.write permission.`,
+    description: `Import a Hyperautomation workflow JSON into the SentinelOne console. Scope the import with accountIds (account-level) or siteIds (site-level); on a scoped tenant a bare import with no scope returns a misleading 403 "Insufficient permissions". The workflow JSON must follow the Hyperautomation schema (use the sentinelone-hyperautomation skill to generate valid JSON). Integration-backed actions (type=http_request with an integration_id) require pre-configured connections in Hyperautomation > Integrations before the workflow will run, and an imported flow lands as a private draft until published (publish endpoint) or activated. Returns the created workflow ID on success. Requires Hyper Automate.write permission.`,
     inputSchema: {
       type: 'object',
       properties: {
@@ -193,19 +215,31 @@ export const tools = [
           type: 'string',
           description: 'Full Hyperautomation workflow JSON as a string. Must be valid Hyperautomation schema. Generate this using the sentinelone-hyperautomation skill.',
         },
+        accountIds: {
+          type: 'string',
+          description: 'Account scope for an account-level import (e.g. "2046190533732727925"). Provide this OR siteIds.',
+        },
+        siteIds: {
+          type: 'string',
+          description: 'Site scope for a site-level import. Provide this OR accountIds.',
+        },
       },
       required: ['workflowJson'],
     },
-    async handler({ workflowJson }) {
+    async handler({ workflowJson, accountIds, siteIds }) {
       let parsed;
       try {
         parsed = JSON.parse(workflowJson);
       } catch (e) {
         return JSON.stringify({ error: `Invalid JSON: ${e.message}` });
       }
-      // Path confirmed working during backtest (returns 403 without write permission).
-      // /v1 equivalent not yet captured — keeping /public path until verified.
-      const result = await apiPost(`${HA_PUBLIC}/workflow-import-export/import`, { data: parsed });
+      // Public import endpoint. Append the scope query param: account-level imports use
+      // ?accountIds=, site-level use ?siteIds=. A bare import (no scope) returns a misleading
+      // 403 on a scoped tenant (validated 2026-06-13).
+      let qs = '';
+      if (accountIds) qs = `?accountIds=${encodeURIComponent(accountIds)}`;
+      else if (siteIds) qs = `?siteIds=${encodeURIComponent(siteIds)}`;
+      const result = await apiPost(`${HA_PUBLIC}/workflow-import-export/import${qs}`, { data: parsed });
       return JSON.stringify(result, null, 2);
     },
   },

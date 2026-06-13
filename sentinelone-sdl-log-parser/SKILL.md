@@ -8,7 +8,7 @@ description: Use whenever the user wants to author, edit, debug, validate, or ex
 
 This skill turns raw log samples into deployed, validated SDL parser definitions. A parser is an *augmented-JSON* file at `/logParsers/<name>` on the SDL tenant that extracts fields from each ingested line. The parser editor and the `Test Parser` button in the console run the parser client-side in JavaScript; this skill mirrors that workflow programmatically and finishes by ingesting a sample through the deployed parser to confirm the actual ingest path works.
 
-> **Sandbox proxy blocked?** If `putFile` or HEC ingest calls to `*.sentinelone.net` fail with a connection or proxy error inside the Amazon Quick sandbox, use the `sentinelone-mcp` server instead. It runs locally via `node` and bypasses the sandbox proxy entirely. Setup: add it in Amazon Quick Settings > Capabilities > MCP. Use `sdl_put_file` to deploy the parser and `hec_ingest` to run the ingest validation step — both execute from your machine, not the sandbox.
+> **Sandbox proxy blocked?** If `putFile` or HEC ingest calls to `*.sentinelone.net` fail with a connection or proxy error inside the Amazon Quick sandbox, use the `sentinelone-mcp` server instead. It runs locally via `node` and bypasses the sandbox proxy entirely. Setup: add it in Amazon Quick Settings > Capabilities > MCP (see `sentinelone-mcp/README.md`). Use `sdl_put_file` to deploy the parser and `hec_ingest` to run the ingest validation step — both execute from your machine, not the sandbox.
 
 ## Two hard rules (every parser, every time)
 
@@ -530,3 +530,28 @@ dataSource.name = 'MySource' app_name = *
 ```
 
 Any `app_name` with `has_class == 0` and meaningful volume is a candidate for a new sentinel.
+
+## Onboarding learnings (tenant-validated 2026-06-13, usea1-purple)
+
+These came out of onboarding Cisco Meraki via the `sentinelone-sdl-solutions` onboarding playbook.
+
+- **JSON-per-line flatten needs a dotted-prefix capture.** `format: "$unmapped.=json{parse=dottedJson}$"`
+  flattens the body into `unmapped.*` queryable fields. A non-prefix capture name like
+  `$json{parse=json}$` captures the raw JSON string and emits NO subfields, so every field reads
+  null after deploy and only the parser-root `attributes` (e.g. `dataSource.name`) apply. This is
+  already shown in `examples/02-json-with-envelope.json`; reach for it first for any JSON source.
+- **`mappings` requires `version: 1` and `transformations`.** The error
+  `Got unsupported event mapper version -1` on `putFile` means the `mappings` block is missing
+  `version`. Ops go inside `transformations: [...]`, each as `{ <op>: {...} }`.
+- **Parsers are account-level.** Deploy at account scope even when the data ingests at a site.
+  There is no site-scoped `/logParsers/` file; the sourcetype label binds events to the parser.
+- **Activation latency is 3 to 5 minutes per deploy** on this tenant, not seconds. Batch parser
+  edits and wait out the window before validating, rather than iterating one field at a time.
+- **A `parser=<name>` label with no `/logParsers/<name>` file and no `dataSource.name`** means the
+  events were tagged with a sourcetype but never transformed (e.g. a marketplace `*-latest` label
+  with no editable file). Creating the parser at that exact path normalises the live stream. The
+  initial `sdl_get_file` 404 is a "create me", not an error.
+- **Network-source enrichment keys on IP.** Build an IP-keyed endpoint lookup
+  (`datasource assets from 'surface/endpoint'`, keyed on `agentLastReportedIp`) and join in the
+  `computeFields` rewrite `by device_ip = unmapped.src_ip` using the pre-rename `unmapped.*` field,
+  since the rewrite runs before `mappings` renames.
